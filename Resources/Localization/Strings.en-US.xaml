@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Menu -->
+    <system:String x:Key="Menu.NewGame">New Game</system:String>
+    <system:String x:Key="Menu.Continue">Continue</system:String>
+    <system:String x:Key="Menu.LoadGame">Load Game</system:String>
+    <system:String x:Key="Menu.Settings">Settings</system:String>
+    <system:String x:Key="Menu.Exit">Exit</system:String>
+
+    <!-- Save/Load -->
+    <system:String x:Key="SaveLoad.Title">Save / Load</system:String>
+    <system:String x:Key="SaveLoad.Save">Save</system:String>
+    <system:String x:Key="SaveLoad.Load">Load</system:String>
+    <system:String x:Key="SaveLoad.EmptySlot">——— Empty ———</system:String>
+    <system:String x:Key="SaveLoad.Page">Page</system:String>
+    <system:String x:Key="SaveLoad.Prev">◀ Prev</system:String>
+    <system:String x:Key="SaveLoad.Next">Next ▶</system:String>
+    <system:String x:Key="SaveLoad.Close">Close</system:String>
+    <system:String x:Key="SaveLoad.Delete">✕ Del</system:String>
+    <system:String x:Key="SaveLoad.ConfirmOverwrite">Overwrite this save slot?</system:String>
+    <system:String x:Key="SaveLoad.Saved">Game saved successfully.</system:String>
+    <system:String x:Key="SaveLoad.Loaded">Game loaded successfully.</system:String>
+
+    <!-- Settings -->
+    <system:String x:Key="Settings.Title">Settings</system:String>
+    <system:String x:Key="Settings.Audio">Audio</system:String>
+    <system:String x:Key="Settings.MasterVolume">Master Volume</system:String>
+    <system:String x:Key="Settings.BGMVolume">BGM Volume</system:String>
+    <system:String x:Key="Settings.SFXVolume">SFX Volume</system:String>
+    <system:String x:Key="Settings.VoiceVolume">Voice Volume</system:String>
+    <system:String x:Key="Settings.Display">Display</system:String>
+    <system:String x:Key="Settings.Resolution">Resolution</system:String>
+    <system:String x:Key="Settings.Fullscreen">Fullscreen</system:String>
+    <system:String x:Key="Settings.VSync">Vertical Sync (VSync)</system:String>
+    <system:String x:Key="Settings.ShowFPS">Show FPS Counter</system:String>
+    <system:String x:Key="Settings.Language">Language</system:String>
+    <system:String x:Key="Settings.Gameplay">Gameplay</system:String>
+    <system:String x:Key="Settings.TextSpeed">Text Speed</system:String>
+    <system:String x:Key="Settings.AutoAdvance">Auto Advance</system:String>
+    <system:String x:Key="Settings.AutoAdvanceDelay">Auto Advance Delay</system:String>
+    <system:String x:Key="Settings.Apply">Apply</system:String>
+    <system:String x:Key="Settings.Cancel">Cancel</system:String>
+    <system:String x:Key="Settings.OK">OK</system:String>
+
+    <!-- Game UI -->
+    <system:String x:Key="Game.Save">Save</system:String>
+    <system:String x:Key="Game.Load">Load</system:String>
+    <system:String x:Key="Game.Settings">Settings</system:String>
+    <system:String x:Key="Game.ReturnToTitle">Return to Title</system:String>
+    <system:String x:Key="Game.ConfirmReturn">Return to title screen? Unsaved progress will be lost.</system:String>
+
+    <!-- Common -->
+    <system:String x:Key="Common.Yes">Yes</system:String>
+    <system:String x:Key="Common.No">No</system:String>
+    <system:String x:Key="Common.Confirm">Confirm</system:String>
+    <system:String x:Key="Common.Back">Back</system:String>
+</ResourceDictionary>

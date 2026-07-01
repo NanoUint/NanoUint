@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Menu -->
+    <system:String x:Key="Menu.NewGame">ニューゲーム</system:String>
+    <system:String x:Key="Menu.Continue">コンティニュー</system:String>
+    <system:String x:Key="Menu.LoadGame">ロード</system:String>
+    <system:String x:Key="Menu.Settings">設定</system:String>
+    <system:String x:Key="Menu.Exit">終了</system:String>
+
+    <!-- Save/Load -->
+    <system:String x:Key="SaveLoad.Title">セーブ / ロード</system:String>
+    <system:String x:Key="SaveLoad.Save">セーブ</system:String>
+    <system:String x:Key="SaveLoad.Load">ロード</system:String>
+    <system:String x:Key="SaveLoad.EmptySlot">——— 空 ———</system:String>
+    <system:String x:Key="SaveLoad.Page">ページ</system:String>
+    <system:String x:Key="SaveLoad.Prev">◀ 前へ</system:String>
+    <system:String x:Key="SaveLoad.Next">次へ ▶</system:String>
+    <system:String x:Key="SaveLoad.Close">閉じる</system:String>
+    <system:String x:Key="SaveLoad.Delete">✕ 削除</system:String>
+    <system:String x:Key="SaveLoad.ConfirmOverwrite">このセーブデータを上書きしますか？</system:String>
+    <system:String x:Key="SaveLoad.Saved">セーブしました。</system:String>
+    <system:String x:Key="SaveLoad.Loaded">ロードしました。</system:String>
+
+    <!-- Settings -->
+    <system:String x:Key="Settings.Title">設定</system:String>
+    <system:String x:Key="Settings.Audio">オーディオ</system:String>
+    <system:String x:Key="Settings.MasterVolume">マスター音量</system:String>
+    <system:String x:Key="Settings.BGMVolume">BGM 音量</system:String>
+    <system:String x:Key="Settings.SFXVolume">効果音 音量</system:String>
+    <system:String x:Key="Settings.VoiceVolume">ボイス 音量</system:String>
+    <system:String x:Key="Settings.Display">ディスプレイ</system:String>
+    <system:String x:Key="Settings.Resolution">解像度</system:String>
+    <system:String x:Key="Settings.Fullscreen">フルスクリーン</system:String>
+    <system:String x:Key="Settings.VSync">垂直同期 (VSync)</system:String>
+    <system:String x:Key="Settings.ShowFPS">FPS 表示</system:String>
+    <system:String x:Key="Settings.Language">言語</system:String>
+    <system:String x:Key="Settings.Gameplay">ゲームプレイ</system:String>
+    <system:String x:Key="Settings.TextSpeed">テキスト速度</system:String>
+    <system:String x:Key="Settings.AutoAdvance">自動送り</system:String>
+    <system:String x:Key="Settings.AutoAdvanceDelay">自動送り遅延</system:String>
+    <system:String x:Key="Settings.Apply">適用</system:String>
+    <system:String x:Key="Settings.Cancel">キャンセル</system:String>
+    <system:String x:Key="Settings.OK">OK</system:String>
+
+    <!-- Game UI -->
+    <system:String x:Key="Game.Save">セーブ</system:String>
+    <system:String x:Key="Game.Load">ロード</system:String>
+    <system:String x:Key="Game.Settings">設定</system:String>
+    <system:String x:Key="Game.ReturnToTitle">タイトルに戻る</system:String>
+    <system:String x:Key="Game.ConfirmReturn">タイトル画面に戻りますか？セーブされていない進行状況は失われます。</system:String>
+
+    <!-- Common -->
+    <system:String x:Key="Common.Yes">はい</system:String>
+    <system:String x:Key="Common.No">いいえ</system:String>
+    <system:String x:Key="Common.Confirm">確認</system:String>
+    <system:String x:Key="Common.Back">戻る</system:String>
+</ResourceDictionary>

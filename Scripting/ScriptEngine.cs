@@ -16,6 +16,7 @@ public class ScriptEngine
     private CompiledScript? _currentScript;
     private int _stepIndex;
     private bool _isRunning;
+    private bool _paused;
 
     // Execution state
     private readonly Dictionary<string, object?> _variables = new();
@@ -96,10 +97,14 @@ public class ScriptEngine
         ExecuteNext();
     }
 
+    /// <summary>Request the engine to pause after the current command completes</summary>
+    public void RequestPause() => _paused = true;
+
     /// <summary>Continue execution (called after player advances past text/choice)</summary>
     public void Continue()
     {
         if (!_isRunning || _currentScript == null) return;
+        _paused = false;
         _stepIndex++;
         if (_stepIndex >= _currentScript.Steps.Count)
         {
@@ -164,7 +169,9 @@ public class ScriptEngine
                     return; // Wait for player to advance
 
                 case ScriptStepType.Command:
+                    _paused = false;
                     ExecuteCommand(step);
+                    if (_paused) return; // Command requested pause — wait for Continue()
                     _stepIndex++;
                     continue;
 
