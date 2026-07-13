@@ -1,38 +1,26 @@
 namespace NanoUint.Models;
 
 /// <summary>
-/// Represents a character in the visual novel with their sprites and metadata.
+/// 表示视觉小说中的一个角色，包含其精灵图和元数据。
 /// </summary>
 public class CharacterData
 {
-    /// <summary>Unique identifier for this character</summary>
+    /// <summary>此角色的唯一标识符</summary>
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>Character name in Chinese</summary>
-    public string NameZh { get; set; } = string.Empty;
-    /// <summary>Character name in English</summary>
-    public string NameEn { get; set; } = string.Empty;
-    /// <summary>Character name in Japanese</summary>
-    public string NameJa { get; set; } = string.Empty;
+    /// <summary>角色显示名称</summary>
+    public string Name { get; set; } = string.Empty;
 
-    /// <summary>Default sprite path</summary>
+    /// <summary>默认精灵图路径</summary>
     public string? DefaultSprite { get; set; }
 
-    /// <summary>Dictionary of expression name → sprite path</summary>
+    /// <summary>表情名称 → 精灵图路径的字典</summary>
     public Dictionary<string, string> Expressions { get; set; } = new();
 
-    /// <summary>Default position on screen</summary>
+    /// <summary>屏幕上的默认位置</summary>
     public CharacterPosition DefaultPosition { get; set; } = CharacterPosition.Center;
 
-    /// <summary>Get name based on language</summary>
-    public string GetName(GameLanguage lang) => lang switch
-    {
-        GameLanguage.Chinese => NameZh,
-        GameLanguage.Japanese => NameJa,
-        _ => NameEn
-    };
-
-    /// <summary>Get a sprite path by expression name, falling back to default</summary>
+    /// <summary>根据表情名称获取精灵图路径，找不到时回退到默认值</summary>
     public string? GetSprite(string? expression = null)
     {
         if (expression != null && Expressions.TryGetValue(expression, out var sprite))

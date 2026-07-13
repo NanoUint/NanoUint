@@ -56,4 +56,40 @@
     <system:String x:Key="Common.No">いいえ</system:String>
     <system:String x:Key="Common.Confirm">確認</system:String>
     <system:String x:Key="Common.Back">戻る</system:String>
+
+    <!-- Phone -->
+    <system:String x:Key="Phone.Title">スマホ</system:String>
+    <system:String x:Key="Phone.Messages">メッセージ</system:String>
+    <system:String x:Key="Phone.Calls">通話</system:String>
+    <system:String x:Key="Phone.Browser">ブラウザ</system:String>
+    <system:String x:Key="Phone.Settings">設定</system:String>
+    <system:String x:Key="Phone.NewMessage">+ 新規メッセージ</system:String>
+    <system:String x:Key="Phone.ComposeTitle">新規メッセージ</system:String>
+    <system:String x:Key="Phone.To">宛先:</system:String>
+    <system:String x:Key="Phone.Subject">件名:</system:String>
+    <system:String x:Key="Phone.Message">本文:</system:String>
+    <system:String x:Key="Phone.Send">送信</system:String>
+    <system:String x:Key="Phone.Cancel">キャンセル</system:String>
+    <system:String x:Key="Phone.Back">戻る</system:String>
+    <system:String x:Key="Phone.IncomingCall">着信中...</system:String>
+    <system:String x:Key="Phone.Accept">応答</system:String>
+    <system:String x:Key="Phone.Decline">拒否</system:String>
+    <system:String x:Key="Phone.EndCall">通話終了</system:String>
+    <system:String x:Key="Phone.Call">発信</system:String>
+    <system:String x:Key="Phone.Clear">クリア</system:String>
+    <system:String x:Key="Phone.LoadingBrowser">ブラウザ読み込み中...</system:String>
+    <system:String x:Key="Phone.PhoneSettings">スマホ設定</system:String>
+    <system:String x:Key="Phone.Ringtone">着信音</system:String>
+    <system:String x:Key="Phone.Wallpaper">壁紙</system:String>
+    <system:String x:Key="Phone.DeviceName">デバイス名</system:String>
+    <system:String x:Key="Phone.Vibration">バイブレーション</system:String>
+    <system:String x:Key="Phone.RingtoneVolume">着信音量</system:String>
+    <system:String x:Key="Phone.SaveSettings">設定を保存</system:String>
+    <system:String x:Key="Phone.Default">デフォルト</system:String>
+    <system:String x:Key="Phone.Chime">チャイム</system:String>
+    <system:String x:Key="Phone.Vintage">ビンテージ</system:String>
+    <system:String x:Key="Phone.Silent">サイレント</system:String>
+    <system:String x:Key="Phone.Dark">ダーク</system:String>
+    <system:String x:Key="Phone.Gradient">グラデーション</system:String>
+    <system:String x:Key="Phone.Stars">星空</system:String>
 </ResourceDictionary>

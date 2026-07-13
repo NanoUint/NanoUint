@@ -1,18 +1,22 @@
 using System.IO;
-using System.Windows.Media;
-using System.Windows.Threading;
+using NAudio.Wave;
+using NAudio.Vorbis;
 
 namespace NanoUint.Services;
 
 /// <summary>
-/// Manages audio playback for BGM, SFX, and voice lines.
-/// Uses WPF MediaPlayer for audio.
+/// 管理 BGM、SFX 和语音的音频播放。
+/// 使用 NAudio 支持 MP3/WAV/OGG 等多种格式。
 /// </summary>
 public class AudioService : IDisposable
 {
-    private MediaPlayer? _bgmPlayer;
-    private MediaPlayer? _sfxPlayer;
-    private MediaPlayer? _voicePlayer;
+    private WaveOutEvent? _bgmOut;
+    private WaveOutEvent? _sfxOut;
+    private WaveOutEvent? _voiceOut;
+
+    private WaveStream? _bgmStream;
+    private WaveStream? _sfxStream;
+    private WaveStream? _voiceStream;
 
     private double _masterVolume = 0.8;
     private double _bgmVolume = 0.8;
@@ -21,13 +25,43 @@ public class AudioService : IDisposable
 
     private string? _currentBgmPath;
     private readonly string _assetBasePath;
+    private bool _disposed;
+
+    /// <summary>语音播放完毕时触发</summary>
+    public event Action? VoiceFinished;
+
+    /// <summary>当前是否正在播放语音</summary>
+    public bool IsVoicePlaying => _voiceOut?.PlaybackState == PlaybackState.Playing;
 
     public AudioService(string assetBasePath = "Assets/Audio")
     {
         _assetBasePath = assetBasePath;
     }
 
-    /// <summary>Set volume levels</summary>
+    /// <summary>创建适合文件格式的 WaveStream</summary>
+    private static WaveStream? CreateReader(string fullPath)
+    {
+        if (!File.Exists(fullPath)) return null;
+
+        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+        try
+        {
+            return ext switch
+            {
+                ".ogg" => new VorbisWaveReader(fullPath),
+                ".mp3" or ".wav" or ".aiff" or ".aif" => new AudioFileReader(fullPath),
+                _ => new AudioFileReader(fullPath) // 尝试 MediaFoundation
+            };
+        }
+        catch (Exception ex)
+        {
+            DebugConsole.LogError("Audio-Reader", ex);
+            return null;
+        }
+    }
+
+    #region 音量
+
     public void SetVolumes(double master, double bgm, double sfx, double voice)
     {
         _masterVolume = master;
@@ -39,106 +73,176 @@ public class AudioService : IDisposable
 
     private void ApplyVolumes()
     {
-        if (_bgmPlayer != null)
-            _bgmPlayer.Volume = _masterVolume * _bgmVolume;
-        if (_sfxPlayer != null)
-            _sfxPlayer.Volume = _masterVolume * _sfxVolume;
-        if (_voicePlayer != null)
-            _voicePlayer.Volume = _masterVolume * _voiceVolume;
+        if (_bgmOut != null) _bgmOut.Volume = (float)(_masterVolume * _bgmVolume);
+        if (_sfxOut != null) _sfxOut.Volume = (float)(_masterVolume * _sfxVolume);
+        if (_voiceOut != null) _voiceOut.Volume = (float)(_masterVolume * _voiceVolume);
     }
 
-    /// <summary>Play BGM (looping background music)</summary>
+    #endregion
+
+    #region BGM
+
     public void PlayBGM(string audioPath)
     {
-        if (_currentBgmPath == audioPath && _bgmPlayer != null)
+        if (_currentBgmPath == audioPath && _bgmOut?.PlaybackState == PlaybackState.Playing)
             return;
 
         StopBGM();
 
-        _bgmPlayer = new MediaPlayer();
         var fullPath = Path.Combine(_assetBasePath, audioPath);
-        if (!File.Exists(fullPath)) return;
+        var stream = CreateReader(fullPath);
+        if (stream == null) return;
 
-        _bgmPlayer.Open(new Uri(fullPath));
-        _bgmPlayer.Volume = _masterVolume * _bgmVolume;
-        _bgmPlayer.MediaEnded += (_, _) =>
+        try
         {
-            // Loop BGM
-            _bgmPlayer.Position = TimeSpan.Zero;
-            _bgmPlayer.Play();
-        };
-        _bgmPlayer.Play();
-        _currentBgmPath = audioPath;
+            _bgmStream = stream;
+            _bgmOut = new WaveOutEvent();
+            _bgmOut.Volume = (float)(_masterVolume * _bgmVolume);
+            _bgmOut.PlaybackStopped += (_, _) =>
+            {
+                // 循环播放
+                if (_bgmStream != null && _bgmOut != null && !_disposed)
+                {
+                    try
+                    {
+                        _bgmStream.Position = 0;
+                        _bgmOut.Play();
+                    }
+                    catch { /* 设备已释放 */ }
+                }
+            };
+            _bgmOut.Init(stream);
+            _bgmOut.Play();
+            _currentBgmPath = audioPath;
+        }
+        catch (Exception ex)
+        {
+            DebugConsole.LogError("Audio-BGM", ex);
+            stream.Dispose();
+            _bgmOut?.Dispose();
+            _bgmOut = null;
+            _bgmStream = null;
+        }
     }
 
-    /// <summary>Stop BGM playback</summary>
     public void StopBGM()
     {
-        if (_bgmPlayer != null)
-        {
-            _bgmPlayer.Stop();
-            _bgmPlayer.Close();
-            _bgmPlayer = null;
-        }
+        _bgmOut?.Stop();
+        _bgmOut?.Dispose();
+        _bgmOut = null;
+        _bgmStream?.Dispose();
+        _bgmStream = null;
         _currentBgmPath = null;
     }
 
-    /// <summary>Pause BGM (e.g., during menus)</summary>
-    public void PauseBGM()
-    {
-        _bgmPlayer?.Pause();
-    }
+    public void PauseBGM() => _bgmOut?.Pause();
+    public void ResumeBGM() => _bgmOut?.Play();
 
-    /// <summary>Resume paused BGM</summary>
-    public void ResumeBGM()
-    {
-        _bgmPlayer?.Play();
-    }
+    #endregion
 
-    /// <summary>Play a one-shot sound effect</summary>
+    #region SFX
+
     public void PlaySFX(string audioPath)
     {
-        _sfxPlayer?.Stop();
-        _sfxPlayer?.Close();
+        _sfxOut?.Stop();
+        _sfxOut?.Dispose();
+        _sfxOut = null;
+        _sfxStream?.Dispose();
+        _sfxStream = null;
 
-        _sfxPlayer = new MediaPlayer();
         var fullPath = Path.Combine(_assetBasePath, audioPath);
-        if (!File.Exists(fullPath)) return;
+        var stream = CreateReader(fullPath);
+        if (stream == null) return;
 
-        _sfxPlayer.Open(new Uri(fullPath));
-        _sfxPlayer.Volume = _masterVolume * _sfxVolume;
-        _sfxPlayer.Play();
+        try
+        {
+            _sfxStream = stream;
+            _sfxOut = new WaveOutEvent();
+            _sfxOut.Volume = (float)(_masterVolume * _sfxVolume);
+            _sfxOut.Init(stream);
+            _sfxOut.Play();
+        }
+        catch (Exception ex)
+        {
+            DebugConsole.LogError("Audio-SFX", ex);
+            stream.Dispose();
+            _sfxOut?.Dispose();
+            _sfxOut = null;
+            _sfxStream = null;
+        }
     }
 
-    /// <summary>Play a voice line</summary>
+    #endregion
+
+    #region Voice
+
     public void PlayVoice(string audioPath)
     {
-        _voicePlayer?.Stop();
-        _voicePlayer?.Close();
+        StopVoice();
 
-        _voicePlayer = new MediaPlayer();
         var fullPath = Path.Combine(_assetBasePath, audioPath);
-        if (!File.Exists(fullPath)) return;
+        var stream = CreateReader(fullPath);
+        if (stream == null) return;
 
-        _voicePlayer.Open(new Uri(fullPath));
-        _voicePlayer.Volume = _masterVolume * _voiceVolume;
-        _voicePlayer.Play();
+        try
+        {
+            _voiceStream = stream;
+            _voiceOut = new WaveOutEvent();
+            _voiceOut.Volume = (float)(_masterVolume * _voiceVolume);
+            _voiceOut.PlaybackStopped += (_, _) =>
+            {
+                if (!_disposed && _voiceOut != null)
+                    VoiceFinished?.Invoke();
+            };
+            _voiceOut.Init(stream);
+            _voiceOut.Play();
+        }
+        catch (Exception ex)
+        {
+            DebugConsole.LogError("Audio-Voice", ex);
+            stream.Dispose();
+            _voiceOut?.Dispose();
+            _voiceOut = null;
+            _voiceStream = null;
+        }
     }
 
-    /// <summary>Stop all audio</summary>
+    /// <summary>停止语音播放</summary>
+    public void StopVoice()
+    {
+        _voiceOut?.Stop();
+        _voiceOut?.Dispose();
+        _voiceOut = null;
+        _voiceStream?.Dispose();
+        _voiceStream = null;
+    }
+
+    #endregion
+
+    #region 停止全部
+
     public void StopAll()
     {
         StopBGM();
-        _sfxPlayer?.Stop();
-        _sfxPlayer?.Close();
-        _sfxPlayer = null;
-        _voicePlayer?.Stop();
-        _voicePlayer?.Close();
-        _voicePlayer = null;
+
+        _sfxOut?.Stop();
+        _sfxOut?.Dispose();
+        _sfxOut = null;
+        _sfxStream?.Dispose();
+        _sfxStream = null;
+
+        _voiceOut?.Stop();
+        _voiceOut?.Dispose();
+        _voiceOut = null;
+        _voiceStream?.Dispose();
+        _voiceStream = null;
     }
 
     public void Dispose()
     {
+        _disposed = true;
         StopAll();
     }
+
+    #endregion
 }

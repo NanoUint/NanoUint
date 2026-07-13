@@ -4,7 +4,7 @@ using System.Windows.Data;
 namespace NanoUint.Converters;
 
 /// <summary>
-/// Inverts a boolean value. True → False, False → True.
+/// 反转布尔值。True → False，False → True。
 /// </summary>
 public class InverseBoolConverter : IValueConverter
 {

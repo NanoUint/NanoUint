@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 namespace NanoUint.Models;
 
 /// <summary>
-/// Application settings with property change notification for real-time binding.
+/// 应用程序设置，具有属性变更通知，支持实时绑定。
 /// </summary>
 public class GameSettings : INotifyPropertyChanged
 {
@@ -19,7 +19,6 @@ public class GameSettings : INotifyPropertyChanged
     private bool _isFullscreen;
     private bool _vSyncEnabled = true;
     private bool _showFps;
-    private string _language = "en-US";
     private double _textSpeed = 0.05;
     private bool _autoAdvance;
     private double _autoAdvanceDelay = 2.0;
@@ -78,12 +77,6 @@ public class GameSettings : INotifyPropertyChanged
         set { _showFps = value; OnPropertyChanged(); }
     }
 
-    public string Language
-    {
-        get => _language;
-        set { _language = value; OnPropertyChanged(); }
-    }
-
     public double TextSpeed
     {
         get => _textSpeed;
@@ -102,14 +95,6 @@ public class GameSettings : INotifyPropertyChanged
         set { _autoAdvanceDelay = Math.Clamp(value, 0.5, 10); OnPropertyChanged(); }
     }
 
-    /// <summary>Get the GameLanguage enum from the language string</summary>
-    public GameLanguage GetGameLanguage() => _language switch
-    {
-        "zh-CN" => GameLanguage.Chinese,
-        "ja-JP" => GameLanguage.Japanese,
-        _ => GameLanguage.English
-    };
-
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -117,7 +102,7 @@ public class GameSettings : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    /// <summary>Create a deep clone of settings</summary>
+    /// <summary>创建设置的深拷贝</summary>
     public GameSettings Clone()
     {
         return new GameSettings
@@ -131,20 +116,19 @@ public class GameSettings : INotifyPropertyChanged
             IsFullscreen = _isFullscreen,
             VSyncEnabled = _vSyncEnabled,
             ShowFPS = _showFps,
-            Language = _language,
             TextSpeed = _textSpeed,
             AutoAdvance = _autoAdvance,
             AutoAdvanceDelay = _autoAdvanceDelay
         };
     }
 
-    // ==================== Persistence ====================
+    #region 持久化
 
     private static string ConfigPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                     "Liminal", "settings.json");
+                     "FallenAltair", "settings.json");
 
-    /// <summary>Save settings to disk</summary>
+    /// <summary>将设置保存到磁盘</summary>
     public void Save()
     {
         try
@@ -156,11 +140,11 @@ public class GameSettings : INotifyPropertyChanged
         }
         catch
         {
-            // Silently fail — settings persistence is non-critical
+            // 静默失败 —— 设置持久化不是关键功能
         }
     }
 
-    /// <summary>Load settings from disk, or return defaults if unavailable</summary>
+    /// <summary>从磁盘加载设置，如果不可用则返回默认值</summary>
     public static GameSettings Load()
     {
         try
@@ -174,8 +158,10 @@ public class GameSettings : INotifyPropertyChanged
         }
         catch
         {
-            // Corrupted or missing — return defaults
+            // 文件损坏或丢失 —— 返回默认值
         }
         return new GameSettings();
     }
+
+    #endregion
 }

@@ -1,17 +1,16 @@
 namespace NanoUint.Scripting;
 
-// ============================================================
-// AST node types for the .vns text script language.
-// Mirrors VoidNovelEngine's script structure.
-// ============================================================
+#region .vns AST节点类型
+// .vns 文本脚本语言的 AST 节点类型。
+// 镜像 VoidNovelEngine 的脚本结构。
 
-/// <summary>Position in source file (line, column)</summary>
+/// <summary>源文件中的位置（行，列）</summary>
 public readonly record struct SourceLocation(int Line, int Column, string FilePath = "")
 {
     public override string ToString() => $"{FilePath}:{Line}:{Column}";
 }
 
-/// <summary>Top-level .vns document</summary>
+/// <summary>顶层 .vns 文档</summary>
 public class VnsDocument
 {
     public string FilePath { get; set; } = "";
@@ -20,50 +19,50 @@ public class VnsDocument
     public List<string> Imports { get; set; } = new();
 }
 
-// ---- Compile-time directives (prefixed with @@) ----
+// ---- 编译时指令（以 @@ 为前缀） ----
 
 public abstract class VnsCompileDirective { }
 
-/// <summary>@@outline("Chapter Name") — document outline title</summary>
+/// <summary>@@outline("章节名称") —— 文档大纲标题</summary>
 public class OutlineDirective : VnsCompileDirective
 {
     public string Title { get; set; } = "";
 }
 
-/// <summary>@@alias(short = target) — command alias definition</summary>
+/// <summary>@@alias(short = target) —— 命令别名定义</summary>
 public class AliasDirective : VnsCompileDirective
 {
     public string ShortName { get; set; } = "";
     public string TargetCommand { get; set; } = "";
 }
 
-/// <summary>@@import("path/to/file.vns") — import another script</summary>
+/// <summary>@@import("path/to/file.vns") —— 导入另一个脚本</summary>
 public class ImportDirective : VnsCompileDirective
 {
     public string Path { get; set; } = "";
 }
 
-// ---- Blocks ----
+// ---- 块 ----
 
 public abstract class VnsBlock
 {
     public SourceLocation Location;
 }
 
-/// <summary>#labelName — a named label (jump target)</summary>
+/// <summary>#labelName —— 命名标签（跳转目标）</summary>
 public class LabelBlock : VnsBlock
 {
     public string Name { get; set; } = "";
 }
 
-/// <summary>A normal text line: either narration (: text) or character dialogue (Name: text)</summary>
+/// <summary>普通文本行：旁白（: 文本）或角色对白（名称: 文本）</summary>
 public class TextBlock : VnsBlock
 {
-    public string? Speaker { get; set; }       // null for narration
+    public string? Speaker { get; set; }       // null 表示旁白
     public string Text { get; set; } = "";
 }
 
-/// <summary>@commandName(arg1, arg2, key: value) — executable command</summary>
+/// <summary>@commandName(arg1, arg2, key: value) —— 可执行命令</summary>
 public class CommandBlock : VnsBlock
 {
     public string CommandName { get; set; } = "";
@@ -72,16 +71,16 @@ public class CommandBlock : VnsBlock
     public VnsFlowBindings? FlowBindings { get; set; }
 }
 
-/// <summary>@if / @elif / @else / @end — conditional structure</summary>
+/// <summary>@if / @elif / @else / @end —— 条件结构</summary>
 public class IfBlock : VnsBlock
 {
-    public string? Condition { get; set; }   // null for @else
+    public string? Condition { get; set; }   // null 表示 @else
     public List<VnsBlock> Body { get; set; } = new();
     public List<IfBlock> ElseIfs { get; set; } = new();
     public List<VnsBlock>? ElseBody { get; set; }
 }
 
-/// <summary>@choice() ... @end — player choice block</summary>
+/// <summary>@choice() ... @end —— 玩家选择块</summary>
 public class ChoiceBlock : VnsBlock
 {
     public List<ChoiceOption> Options { get; set; } = new();
@@ -93,7 +92,7 @@ public class ChoiceOption
     public string? TargetLabel { get; set; }
 }
 
-// ---- Arguments & Values ----
+// ---- 参数与值 ----
 
 public abstract class VnsArgument
 {
@@ -111,7 +110,7 @@ public class NamedArg : VnsArgument
     public override VnsValue Value { get; set; } = new VnsNull();
 }
 
-// ---- Value types ----
+// ---- 值类型 ----
 
 public abstract class VnsValue { }
 
@@ -159,19 +158,19 @@ public class VnsLabelRef : VnsValue
 
 public class VnsVariable : VnsValue
 {
-    public string Scope { get; set; } = "";   // "$" local, "global." global, "temp." temp
+    public string Scope { get; set; } = "";   // "$" 局部, "global." 全局, "temp." 临时
     public string Name { get; set; } = "";
     public override string ToString() => Scope == "$" ? $"${Name}" : $"{Scope}{Name}";
 }
 
 public class VnsResourceRef : VnsValue
 {
-    public string ResourceType { get; set; } = "";  // "texture", "audio", "style", "ui", etc.
+    public string ResourceType { get; set; } = "";  // "texture", "audio", "style", "ui" 等
     public string Path { get; set; } = "";
     public override string ToString() => $"&{ResourceType}(\"{Path}\")";
 }
 
-// ---- Flow bindings (-> output:target) ----
+// ---- 流程绑定（-> output:target） ----
 
 public class VnsFlowBindings
 {
@@ -180,22 +179,22 @@ public class VnsFlowBindings
     public Dictionary<string, string> VariableBindings { get; set; } = new(); // -> output:$var
 }
 
-// ---- Compiled result ----
+// ---- 编译结果 ----
 
-/// <summary>A single executable script step after compilation</summary>
+/// <summary>编译后的单个可执行脚本步骤</summary>
 public class ScriptStep
 {
     public SourceLocation Location;
     public ScriptStepType Type { get; set; }
-    public string? Label { get; set; }                 // If this step is a label definition
-    public string? CommandName { get; set; }           // For Command steps
+    public string? Label { get; set; }                 // 如果此步骤是标签定义
+    public string? CommandName { get; set; }           // 用于命令步骤
     public Dictionary<string, object?> Parameters { get; set; } = new();
-    public string? Text { get; set; }                  // For Text steps (narration/dialogue)
-    public string? Speaker { get; set; }               // For Text steps
-    public List<string>? Choices { get; set; }         // For Choice steps
-    public List<ScriptStep>? IfBody { get; set; }      // For conditional blocks
+    public string? Text { get; set; }                  // 用于文本步骤（旁白/对白）
+    public string? Speaker { get; set; }               // 用于文本步骤
+    public List<string>? Choices { get; set; }         // 用于选择步骤
+    public List<ScriptStep>? IfBody { get; set; }      // 用于条件块
     public List<ScriptStep>? ElseBody { get; set; }
-    public string? Condition { get; set; }             // For if/elif
+    public string? Condition { get; set; }             // 用于 if/elif
     public List<(string Condition, List<ScriptStep> Body)>? ElseIfs { get; set; }
 }
 
@@ -209,3 +208,5 @@ public enum ScriptStepType
     If,
     EndIf
 }
+
+#endregion

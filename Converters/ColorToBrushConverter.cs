@@ -5,7 +5,7 @@ using System.Windows.Media;
 namespace NanoUint.Converters;
 
 /// <summary>
-/// Converts a System.Windows.Media.Color to a SolidColorBrush for XAML binding.
+/// 将 System.Windows.Media.Color 转换为 SolidColorBrush，用于 XAML 绑定。
 /// </summary>
 public class ColorToBrushConverter : IValueConverter
 {

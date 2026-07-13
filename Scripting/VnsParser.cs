@@ -1,8 +1,8 @@
 namespace NanoUint.Scripting;
 
 /// <summary>
-/// Recursive-descent parser for .vns script files.
-/// Takes tokens from the lexer and builds a VnsDocument AST.
+/// .vns 脚本文件的递归下降解析器。
+/// 从词法分析器获取 Token 并构建 VnsDocument AST。
 /// </summary>
 public class VnsParser
 {
@@ -26,12 +26,14 @@ public class VnsParser
         return doc;
     }
 
-    // ---- Directives (top of file only) ----
+    // ---- 指令（仅文件顶部） ----
 
     private void ParseDirectives(VnsDocument doc)
     {
+        int safety = 0;
         while (!IsAtEnd() && (Current.Type == TokenType.DoubleAt || Current.Type == TokenType.Comment || Current.Type == TokenType.NewLine))
         {
+            if (++safety > 10_000) throw new InvalidOperationException("ParseDirectives: safety limit hit!");
             if (Current.Type == TokenType.NewLine || Current.Type == TokenType.Comment)
             {
                 Advance();
@@ -60,7 +62,7 @@ public class VnsParser
         {
             case "outline":
                 var outline = new OutlineDirective();
-                if (CheckNamed("name") || CheckNamed("title")) { Advance(); Expect(TokenType.Equals); } // skip name=
+                if (CheckNamed("name") || CheckNamed("title")) { Advance(); Expect(TokenType.Equals); } // 跳过 name=
                 if (Check(TokenType.String)) outline.Title = Advance().Value;
                 Expect(TokenType.RParen);
                 return outline;
@@ -86,13 +88,15 @@ public class VnsParser
         }
     }
 
-    // ---- Blocks ----
+    // ---- 块 ----
 
     private void ParseBlocks(VnsDocument doc)
     {
         SkipNewlines();
+        int safety = 0;
         while (!IsAtEnd())
         {
+            if (++safety > 50_000) throw new InvalidOperationException($"ParseBlocks: safety limit hit! pos={_pos}, token={Current}");
             var block = ParseBlock();
             if (block != null) doc.Blocks.Add(block);
             SkipNewlines();
@@ -123,7 +127,7 @@ public class VnsParser
 
     private VnsBlock? ParseTextOrLabel()
     {
-        // Look ahead: if identifier is followed by ':', it's a character dialogue line
+        // 向前看：如果标识符后跟 ':'，则为角色对白行
         var saved = _pos;
         var ident = Expect(TokenType.Identifier);
         if (Check(TokenType.Colon))
@@ -134,14 +138,14 @@ public class VnsParser
             if (Check(TokenType.String)) text = Advance().Value;
             else if (Check(TokenType.Identifier))
             {
-                // Read rest of line as text
+                // 将行剩余部分读取为文本
                 text = ReadRestOfLine();
             }
             return new TextBlock { Speaker = ident.Value, Text = text, Location = Loc() };
         }
         else
         {
-            // It's just a bare identifier — treat as text or ignore
+            // 只是一个裸标识符 —— 视为文本或忽略
             _pos = saved;
             return null;
         }
@@ -161,14 +165,14 @@ public class VnsParser
     private VnsBlock? ParseCommandOrIfOrChoice()
     {
         Expect(TokenType.AtSign);
-        SkipNewlines(); // in case of stray newline after @
+        SkipNewlines(); // 处理 @ 后可能出现的多余换行符
 
         var cmdName = Expect(TokenType.Identifier).Value;
 
         return cmdName switch
         {
             "if" => ParseIf(),
-            "elif" => null, // handled inside ParseIf
+            "elif" => null, // 在 ParseIf 内部处理
             "else" => null,
             "end" => null,
             "choice" => ParseChoice(),
@@ -180,7 +184,7 @@ public class VnsParser
     private IfBlock ParseIf()
     {
         var loc = Loc();
-        // Parse condition
+        // 解析条件
         string? condition = null;
         if (Check(TokenType.LParen))
         {
@@ -193,7 +197,7 @@ public class VnsParser
         var body = ParseInnerBlocks("elif", "else", "end");
         var block = new IfBlock { Condition = condition, Body = body, Location = loc };
 
-        // Parse elifs
+        // 解析 elif
         while (Check(TokenType.AtSign) && PeekValue(1) == "elif")
         {
             Advance(); Advance(); // @ elif
@@ -204,7 +208,7 @@ public class VnsParser
             block.ElseIfs.Add(new IfBlock { Condition = elifCond, Body = elifBody });
         }
 
-        // Parse else
+        // 解析 else
         if (Check(TokenType.AtSign) && PeekValue(1) == "else")
         {
             Advance(); Advance(); // @ else
@@ -212,7 +216,7 @@ public class VnsParser
             block.ElseBody = ParseInnerBlocks("elif", "else", "end");
         }
 
-        // Consume @end
+        // 消费 @end
         if (Check(TokenType.AtSign) && PeekValue(1) == "end") { Advance(); Advance(); }
         SkipNewlines();
 
@@ -222,7 +226,7 @@ public class VnsParser
     private ChoiceBlock ParseChoice()
     {
         var loc = Loc();
-        // Optional parens with prompt
+        // 可选的带提示的括号
         if (Check(TokenType.LParen))
         {
             while (!Check(TokenType.RParen) && !IsAtEnd()) Advance();
@@ -231,13 +235,15 @@ public class VnsParser
 
         SkipNewlines();
         var choice = new ChoiceBlock { Location = loc };
+        int safety = 0;
 
         while (!IsAtEnd() && !(Check(TokenType.AtSign) && PeekValue(1) == "end"))
         {
+            if (++safety > 10_000) throw new InvalidOperationException("ParseChoice: safety limit hit!");
             if (Check(TokenType.Dash))
             {
                 Advance();
-                // Parse option: - "Text" -> #Target
+                // 解析选项：- "文本" -> #目标
                 string optText = "";
                 if (Check(TokenType.String)) optText = Advance().Value;
                 else optText = ReadRestOfLine().Trim();
@@ -257,11 +263,11 @@ public class VnsParser
             }
             else
             {
-                Advance(); // skip unknown
+                Advance(); // 跳过未知内容
             }
         }
 
-        // Consume @end
+        // 消费 @end
         if (Check(TokenType.AtSign)) { Advance(); if (Check(TokenType.Identifier) && Current.Value == "end") Advance(); }
 
         return choice;
@@ -273,7 +279,7 @@ public class VnsParser
         if (Check(TokenType.LParen))
         {
             Advance();
-            if (Check(TokenType.Hash)) { Advance(); } // skip #
+            if (Check(TokenType.Hash)) { Advance(); } // 跳过 #
             if (Check(TokenType.Identifier)) cmd.Arguments.Add(new PositionalArg { Value = new VnsLabelRef { LabelName = Advance().Value } });
             Expect(TokenType.RParen);
         }
@@ -290,7 +296,7 @@ public class VnsParser
             Expect(TokenType.RParen);
         }
 
-        // Parse flow bindings (-> output:#label or -> $var)
+        // 解析流程绑定（-> output:#label 或 -> $var）
         ParseFlowBindings(cmd);
 
         return cmd;
@@ -298,15 +304,17 @@ public class VnsParser
 
     private void ParseCommandArgs(CommandBlock cmd)
     {
+        int safety = 0;
         while (!Check(TokenType.RParen) && !IsAtEnd())
         {
+            if (++safety > 10_000) throw new InvalidOperationException("ParseCommandArgs: safety limit hit!");
             if (Check(TokenType.Comma)) { Advance(); continue; }
 
-            // Named arg: key: value or key = value
+            // 命名参数：key: value 或 key = value
             if (Check(TokenType.Identifier) && (PeekType(1) == TokenType.Colon || PeekType(1) == TokenType.Equals))
             {
                 var name = Advance().Value;
-                Advance(); // : or =
+                Advance(); // : 或 =
                 var val = ParseValue();
                 cmd.NamedArguments[name] = val;
             }
@@ -334,7 +342,7 @@ public class VnsParser
             return;
         }
 
-        // Parse output bindings: out_name:#label, out_name:$var
+        // 解析输出绑定：out_name:#label, out_name:$var
         while (!Check(TokenType.NewLine) && !Check(TokenType.Eof) && !Check(TokenType.AtSign))
         {
             if (Check(TokenType.Identifier))
@@ -416,14 +424,16 @@ public class VnsParser
         return new VnsVector2 { X = x, Y = y };
     }
 
-    // ---- Inner block parsing (for if/choice bodies) ----
+    // ---- 内部块解析（用于 if/choice 语句体） ----
 
     private List<VnsBlock> ParseInnerBlocks(params string[] stopCommands)
     {
         var blocks = new List<VnsBlock>();
         SkipNewlines();
+        int safety = 0;
         while (!IsAtEnd())
         {
+            if (++safety > 10_000) throw new InvalidOperationException("ParseInnerBlocks: safety limit hit!");
             if (Check(TokenType.AtSign))
             {
                 var saved = _pos;
@@ -442,7 +452,7 @@ public class VnsParser
         return blocks;
     }
 
-    // ---- Helpers ----
+    // ---- 辅助方法 ----
 
     private string ReadRestOfLine()
     {
@@ -458,7 +468,7 @@ public class VnsParser
     private string ReadCondition()
     {
         var sb = new System.Text.StringBuilder();
-        int depth = 0; // track nested parens
+        int depth = 0; // 跟踪嵌套括号
         while (!IsAtEnd())
         {
             if (Check(TokenType.RParen) && depth == 0) break;
@@ -492,7 +502,7 @@ public class VnsParser
     private Token Expect(TokenType type)
     {
         if (Check(type)) return Advance();
-        // Skip unexpected tokens gracefully
+        // 优雅地跳过意外 Token
         Advance();
         return new Token { Type = type, Value = "" };
     }

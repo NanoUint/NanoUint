@@ -5,16 +5,17 @@ using System.Windows.Data;
 namespace NanoUint.Converters;
 
 /// <summary>
-/// Converts a boolean value to Visibility.
-/// True → Visible, False → Collapsed.
+/// 将布尔值转换为 Visibility。
+/// True → Visible，False → Collapsed。
 /// </summary>
 public class BoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
+        bool invert = parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
         if (value is bool b)
-            return b ? Visibility.Visible : Visibility.Collapsed;
-        return Visibility.Collapsed;
+            return (b ^ invert) ? Visibility.Visible : Visibility.Collapsed;
+        return invert ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -5,8 +5,8 @@ using Newtonsoft.Json;
 namespace NanoUint.Services;
 
 /// <summary>
-/// Manages saving and loading game state to/from JSON files.
-/// Supports multiple save slots with metadata.
+/// 管理游戏状态的保存和加载（通过 JSON 文件）。
+/// 支持多个带元数据的存档槽位。
 /// </summary>
 public static class SaveLoadService
 {
@@ -22,19 +22,19 @@ public static class SaveLoadService
         Directory.CreateDirectory(SaveDirectory);
     }
 
-    /// <summary>Get the file path for a given save slot</summary>
+    /// <summary>获取指定存档槽位的文件路径</summary>
     public static string GetSavePath(int slotIndex)
     {
         return Path.Combine(SaveDirectory, string.Format(SaveFilePattern, slotIndex));
     }
 
-    /// <summary>Check if a save slot has data</summary>
+    /// <summary>检查存档槽位是否有数据</summary>
     public static bool SlotExists(int slotIndex)
     {
         return File.Exists(GetSavePath(slotIndex));
     }
 
-    /// <summary>Save game state to a slot</summary>
+    /// <summary>将游戏状态保存到槽位</summary>
     public static void Save(int slotIndex, SaveData data)
     {
         if (slotIndex < 0 || slotIndex >= MaxSlots)
@@ -47,7 +47,7 @@ public static class SaveLoadService
         File.WriteAllText(GetSavePath(slotIndex), json);
     }
 
-    /// <summary>Load game state from a slot</summary>
+    /// <summary>从槽位加载游戏状态</summary>
     public static SaveData? Load(int slotIndex)
     {
         var path = GetSavePath(slotIndex);
@@ -58,7 +58,7 @@ public static class SaveLoadService
         return JsonConvert.DeserializeObject<SaveData>(json);
     }
 
-    /// <summary>Delete a save slot</summary>
+    /// <summary>删除存档槽位</summary>
     public static void Delete(int slotIndex)
     {
         var path = GetSavePath(slotIndex);
@@ -66,7 +66,7 @@ public static class SaveLoadService
             File.Delete(path);
     }
 
-    /// <summary>Get metadata for all save slots</summary>
+    /// <summary>获取所有存档槽位的元数据</summary>
     public static List<SaveData?> GetAllSlots()
     {
         var slots = new List<SaveData?>();
@@ -77,7 +77,7 @@ public static class SaveLoadService
         return slots;
     }
 
-    /// <summary>Get the number of filled save slots</summary>
+    /// <summary>获取已使用的存档槽位数量</summary>
     public static int GetSlotCount()
     {
         int count = 0;
@@ -88,7 +88,7 @@ public static class SaveLoadService
         return count;
     }
 
-    /// <summary>Delete all saves</summary>
+    /// <summary>删除所有存档</summary>
     public static void DeleteAll()
     {
         for (int i = 0; i < MaxSlots; i++)

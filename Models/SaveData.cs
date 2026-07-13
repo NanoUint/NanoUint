@@ -1,54 +1,46 @@
 namespace NanoUint.Models;
 
 /// <summary>
-/// Represents a single save slot containing full game state.
+/// 表示一个包含完整游戏状态的存档槽位。
 /// </summary>
 public class SaveData
 {
-    /// <summary>Slot index (0-based)</summary>
+    /// <summary>槽位索引（从0开始）</summary>
     public int SlotIndex { get; set; }
 
-    /// <summary>Timestamp when the save was created</summary>
+    /// <summary>存档创建的时间戳</summary>
     public DateTime SaveTime { get; set; } = DateTime.Now;
 
-    /// <summary>Name of the current chapter/scene</summary>
+    /// <summary>当前章节/场景的名称</summary>
     public string ChapterName { get; set; } = string.Empty;
 
-    /// <summary>Chapter name in save (localized)</summary>
-    public string ChapterNameZh { get; set; } = string.Empty;
-    public string ChapterNameEn { get; set; } = string.Empty;
-    public string ChapterNameJa { get; set; } = string.Empty;
-
-    /// <summary>Index in the current dialogue sequence</summary>
+    /// <summary>当前对话序列中的索引</summary>
     public int DialogueIndex { get; set; }
 
-    /// <summary>Current scene/background path</summary>
+    /// <summary>当前场景/背景路径</summary>
     public string? CurrentBackground { get; set; }
 
-    /// <summary>Current BGM path</summary>
+    /// <summary>当前 BGM 路径</summary>
     public string? CurrentBGM { get; set; }
 
-    /// <summary>Game flags for branching logic</summary>
+    /// <summary>用于分支逻辑的游戏标记</summary>
     public Dictionary<string, bool> Flags { get; set; } = new();
 
-    /// <summary>Player choices made (for branching paths)</summary>
+    /// <summary>玩家已做出的选择（用于分支路径）</summary>
     public List<string> ChoiceHistory { get; set; } = new();
 
-    /// <summary>Total play time at save point</summary>
+    /// <summary>存档时的总游戏时间</summary>
     public TimeSpan PlayTime { get; set; }
 
-    /// <summary>Base64 thumbnail of save screenshot (placeholder)</summary>
+    /// <summary>脚本引擎状态的 JSON（步骤索引、变量、标记）</summary>
+    public string? ScriptStateJson { get; set; }
+
+    /// <summary>存档截图的 Base64 缩略图（占位符）</summary>
     public string? ThumbnailBase64 { get; set; }
 
-    /// <summary>Display-friendly save description</summary>
-    public string GetDescription(GameLanguage lang)
+    /// <summary>适合显示的存档描述</summary>
+    public string GetDescription()
     {
-        var chapter = lang switch
-        {
-            GameLanguage.Chinese => string.IsNullOrEmpty(ChapterNameZh) ? ChapterName : ChapterNameZh,
-            GameLanguage.Japanese => string.IsNullOrEmpty(ChapterNameJa) ? ChapterName : ChapterNameJa,
-            _ => string.IsNullOrEmpty(ChapterNameEn) ? ChapterName : ChapterNameEn
-        };
-        return $"{SaveTime:yyyy/MM/dd HH:mm} - {chapter}";
+        return $"{SaveTime:yyyy/MM/dd HH:mm} - {ChapterName}";
     }
 }

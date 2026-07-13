@@ -10,12 +10,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.3.0" />
+    <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Resources\Localization\*.xaml" />
     <Resource Include="Resources\Styles\*.xaml" />
+    <EmbeddedResource Include="Resources\editor.html" />
   </ItemGroup>
 
 </Project>

@@ -56,4 +56,40 @@
     <system:String x:Key="Common.No">否</system:String>
     <system:String x:Key="Common.Confirm">确认</system:String>
     <system:String x:Key="Common.Back">返回</system:String>
+
+    <!-- Phone -->
+    <system:String x:Key="Phone.Title">手机</system:String>
+    <system:String x:Key="Phone.Messages">消息</system:String>
+    <system:String x:Key="Phone.Calls">通话</system:String>
+    <system:String x:Key="Phone.Browser">浏览器</system:String>
+    <system:String x:Key="Phone.Settings">设置</system:String>
+    <system:String x:Key="Phone.NewMessage">+ 新消息</system:String>
+    <system:String x:Key="Phone.ComposeTitle">新消息</system:String>
+    <system:String x:Key="Phone.To">收件人:</system:String>
+    <system:String x:Key="Phone.Subject">主题:</system:String>
+    <system:String x:Key="Phone.Message">内容:</system:String>
+    <system:String x:Key="Phone.Send">发送</system:String>
+    <system:String x:Key="Phone.Cancel">取消</system:String>
+    <system:String x:Key="Phone.Back">返回</system:String>
+    <system:String x:Key="Phone.IncomingCall">来电...</system:String>
+    <system:String x:Key="Phone.Accept">接听</system:String>
+    <system:String x:Key="Phone.Decline">拒接</system:String>
+    <system:String x:Key="Phone.EndCall">挂断</system:String>
+    <system:String x:Key="Phone.Call">致电</system:String>
+    <system:String x:Key="Phone.Clear">清除</system:String>
+    <system:String x:Key="Phone.LoadingBrowser">加载浏览器...</system:String>
+    <system:String x:Key="Phone.PhoneSettings">手机设置</system:String>
+    <system:String x:Key="Phone.Ringtone">铃声</system:String>
+    <system:String x:Key="Phone.Wallpaper">壁纸</system:String>
+    <system:String x:Key="Phone.DeviceName">设备名称</system:String>
+    <system:String x:Key="Phone.Vibration">振动</system:String>
+    <system:String x:Key="Phone.RingtoneVolume">铃声音量</system:String>
+    <system:String x:Key="Phone.SaveSettings">保存设置</system:String>
+    <system:String x:Key="Phone.Default">默认</system:String>
+    <system:String x:Key="Phone.Chime">风铃</system:String>
+    <system:String x:Key="Phone.Vintage">复古</system:String>
+    <system:String x:Key="Phone.Silent">静音</system:String>
+    <system:String x:Key="Phone.Dark">暗黑</system:String>
+    <system:String x:Key="Phone.Gradient">渐变</system:String>
+    <system:String x:Key="Phone.Stars">星空</system:String>
 </ResourceDictionary>

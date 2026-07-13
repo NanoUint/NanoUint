@@ -56,4 +56,40 @@
     <system:String x:Key="Common.No">No</system:String>
     <system:String x:Key="Common.Confirm">Confirm</system:String>
     <system:String x:Key="Common.Back">Back</system:String>
+
+    <!-- Phone -->
+    <system:String x:Key="Phone.Title">Phone</system:String>
+    <system:String x:Key="Phone.Messages">Messages</system:String>
+    <system:String x:Key="Phone.Calls">Calls</system:String>
+    <system:String x:Key="Phone.Browser">Browser</system:String>
+    <system:String x:Key="Phone.Settings">Settings</system:String>
+    <system:String x:Key="Phone.NewMessage">+ New Message</system:String>
+    <system:String x:Key="Phone.ComposeTitle">New Message</system:String>
+    <system:String x:Key="Phone.To">To:</system:String>
+    <system:String x:Key="Phone.Subject">Subject:</system:String>
+    <system:String x:Key="Phone.Message">Message:</system:String>
+    <system:String x:Key="Phone.Send">Send</system:String>
+    <system:String x:Key="Phone.Cancel">Cancel</system:String>
+    <system:String x:Key="Phone.Back">Back</system:String>
+    <system:String x:Key="Phone.IncomingCall">Incoming Call...</system:String>
+    <system:String x:Key="Phone.Accept">Accept</system:String>
+    <system:String x:Key="Phone.Decline">Decline</system:String>
+    <system:String x:Key="Phone.EndCall">End Call</system:String>
+    <system:String x:Key="Phone.Call">Call</system:String>
+    <system:String x:Key="Phone.Clear">Clear</system:String>
+    <system:String x:Key="Phone.LoadingBrowser">Loading browser...</system:String>
+    <system:String x:Key="Phone.PhoneSettings">Phone Settings</system:String>
+    <system:String x:Key="Phone.Ringtone">Ringtone</system:String>
+    <system:String x:Key="Phone.Wallpaper">Wallpaper</system:String>
+    <system:String x:Key="Phone.DeviceName">Device Name</system:String>
+    <system:String x:Key="Phone.Vibration">Vibration</system:String>
+    <system:String x:Key="Phone.RingtoneVolume">Ringtone Volume</system:String>
+    <system:String x:Key="Phone.SaveSettings">Save Settings</system:String>
+    <system:String x:Key="Phone.Default">Default</system:String>
+    <system:String x:Key="Phone.Chime">Chime</system:String>
+    <system:String x:Key="Phone.Vintage">Vintage</system:String>
+    <system:String x:Key="Phone.Silent">Silent</system:String>
+    <system:String x:Key="Phone.Dark">Dark</system:String>
+    <system:String x:Key="Phone.Gradient">Gradient</system:String>
+    <system:String x:Key="Phone.Stars">Stars</system:String>
 </ResourceDictionary>

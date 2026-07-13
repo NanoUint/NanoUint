@@ -1,8 +1,8 @@
 namespace NanoUint.Scripting;
 
 /// <summary>
-/// Compiles a parsed .vns document (AST) into a flat sequence of ScriptSteps.
-/// Resolves aliases, if/choice structures, and jump targets.
+/// 将解析后的 .vns 文档（AST）编译为扁平的 ScriptStep 序列。
+/// 解析别名、if/choice 结构和跳转目标。
 /// </summary>
 public class VnsCompiler
 {
@@ -15,12 +15,12 @@ public class VnsCompiler
         _aliases = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>Compile a document to executable script steps</summary>
+    /// <summary>将文档编译为可执行的脚本步骤</summary>
     public CompiledScript Compile(VnsDocument document)
     {
         _aliases.Clear();
 
-        // Process directives: register aliases
+        // 处理指令：注册别名
         foreach (var dir in document.Directives)
         {
             if (dir is AliasDirective alias)
@@ -69,7 +69,7 @@ public class VnsCompiler
 
     private void CompileCommand(CommandBlock cmd, List<ScriptStep> output)
     {
-        // Resolve alias
+        // 解析别名
         var resolvedName = _aliases.TryGetValue(cmd.CommandName, out var target) ? target : cmd.CommandName;
 
         var step = new ScriptStep
@@ -80,19 +80,19 @@ public class VnsCompiler
             Parameters = new Dictionary<string, object?>()
         };
 
-        // Add positional args
+        // 添加位置参数
         for (int i = 0; i < cmd.Arguments.Count; i++)
         {
             step.Parameters[$"_arg{i}"] = ConvertValue(cmd.Arguments[i].Value);
         }
 
-        // Add named args
+        // 添加命名参数
         foreach (var (key, val) in cmd.NamedArguments)
         {
             step.Parameters[key] = ConvertValue(val);
         }
 
-        // Handle jump: the first positional arg is the target label
+        // 处理跳转：第一个位置参数是目标标签
         if (cmd.CommandName == "jump" && cmd.Arguments.Count > 0 && cmd.Arguments[0].Value is VnsLabelRef lr)
         {
             step.Parameters["target"] = lr.LabelName;
@@ -162,13 +162,14 @@ public class VnsCompiler
     }
 }
 
-/// <summary>The result of compiling a .vns script</summary>
+/// <summary>编译 .vns 脚本的结果</summary>
 public class CompiledScript
 {
     public List<ScriptStep> Steps { get; init; } = new();
     public Dictionary<string, string> Aliases { get; init; } = new();
+    public string FilePath { get; set; } = "";
 
-    /// <summary>Get all labels defined in this script</summary>
+    /// <summary>获取此脚本中定义的所有标签</summary>
     public IEnumerable<string> Labels =>
         Steps.Where(s => s.Type == ScriptStepType.Label && s.Label != null)
              .Select(s => s.Label!);
