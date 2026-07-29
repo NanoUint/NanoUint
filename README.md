@@ -1,2 +1,2 @@
 # NanoUint
-A Visual Novel Game Engine based on WPF
+A Nano Unity Game Engine for Visual Novels base on WPF.

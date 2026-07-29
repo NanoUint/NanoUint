@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using NanoUint.Services;
+using WpfApplication = System.Windows.Application;
 
 namespace NanoUint.Scripting;
 
@@ -27,8 +28,8 @@ public static class BuiltInCommands
     public static void SysExit(ScriptCommandContext ctx)
     {
         var code = ctx.Arg<double>(0, 0);
-        Application.Current.Dispatcher.Invoke(() =>
-            Application.Current.Shutdown((int)code));
+        WpfApplication.Current.Dispatcher.Invoke(() =>
+            WpfApplication.Current.Shutdown((int)code));
     }
 
     /// <summary>
@@ -41,7 +42,7 @@ public static class BuiltInCommands
         var text = ctx.Arg<string>(0) ?? "";
         var title = ctx.Get<string>("title") ?? "FallenAltair";
 
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
             System.Windows.MessageBox.Show(text, title, MessageBoxButton.OK, MessageBoxImage.Information);
         });
@@ -60,7 +61,7 @@ public static class BuiltInCommands
         var text = ctx.Arg<string>(0) ?? "";
         var title = ctx.Get<string>("title") ?? "FallenAltair";
 
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
             var result = System.Windows.MessageBox.Show(text, title,
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -130,10 +131,10 @@ public static class BuiltInCommands
     public static void SysWindowTitle(ScriptCommandContext ctx)
     {
         var title = ctx.Arg<string>(0) ?? "";
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
-            if (Application.Current.MainWindow != null)
-                Application.Current.MainWindow.Title = title;
+            if (WpfApplication.Current.MainWindow != null)
+                WpfApplication.Current.MainWindow.Title = title;
         });
     }
 
@@ -143,7 +144,7 @@ public static class BuiltInCommands
     {
         var text = ctx.Arg<string>(0) ?? "";
         // 剪贴板必须在 STA 线程中调用
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
             try { Clipboard.SetText(text); }
             catch { /* 剪贴板可能被锁定 */ }
@@ -158,10 +159,10 @@ public static class BuiltInCommands
     [RegistryInScript("sys_minimize")]
     public static void SysMinimize(ScriptCommandContext ctx)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
-            if (Application.Current.MainWindow != null)
-                Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            if (WpfApplication.Current.MainWindow != null)
+                WpfApplication.Current.MainWindow.WindowState = WindowState.Minimized;
         });
     }
 
@@ -169,10 +170,10 @@ public static class BuiltInCommands
     [RegistryInScript("sys_maximize")]
     public static void SysMaximize(ScriptCommandContext ctx)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
-            if (Application.Current.MainWindow != null)
-                Application.Current.MainWindow.WindowState = WindowState.Maximized;
+            if (WpfApplication.Current.MainWindow != null)
+                WpfApplication.Current.MainWindow.WindowState = WindowState.Maximized;
         });
     }
 
@@ -180,10 +181,10 @@ public static class BuiltInCommands
     [RegistryInScript("sys_restore")]
     public static void SysRestore(ScriptCommandContext ctx)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        WpfApplication.Current.Dispatcher.Invoke(() =>
         {
-            if (Application.Current.MainWindow != null)
-                Application.Current.MainWindow.WindowState = WindowState.Normal;
+            if (WpfApplication.Current.MainWindow != null)
+                WpfApplication.Current.MainWindow.WindowState = WindowState.Normal;
         });
     }
 

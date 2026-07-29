@@ -1,6 +1,5 @@
 using System.IO;
 using System.Reflection;
-using NanoUint.Models;
 
 namespace NanoUint.Scripting;
 
@@ -33,6 +32,9 @@ public class ScriptEngine
 
     /// <summary>当脚本结束或跳转到场景时触发</summary>
     public event Action? OnScriptEnd;
+
+    /// <summary>从外部命令触发文本显示（用于 @say/@narration 等命令）。</summary>
+    public void RaiseText(string? speaker, string text) => OnText?.Invoke(speaker, text);
 
     /// <summary>当前脚本步骤，如果未运行则为 null</summary>
     public ScriptStep? CurrentStep => _isRunning && _stepIndex < (_currentScript?.Steps.Count ?? 0)
@@ -141,6 +143,10 @@ public class ScriptEngine
     public void Continue()
     {
         if (!_isRunning || _currentScript == null) return;
+
+        // 推进到下一行时停止当前语音
+        AudioManager.StopVoice();
+
         _paused = false;
         _stepIndex++;
         if (_stepIndex >= _currentScript.Steps.Count)

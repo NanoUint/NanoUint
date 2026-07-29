@@ -18,7 +18,6 @@
   <ItemGroup>
     <Resource Include="Resources\Localization\*.xaml" />
     <Resource Include="Resources\Styles\*.xaml" />
-    <EmbeddedResource Include="Resources\editor.html" />
   </ItemGroup>
 
 </Project>
