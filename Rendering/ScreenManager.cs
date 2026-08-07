@@ -1,9 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 画面管理器。控制分辨率、全屏、VSync 等。
-/// 内部操作 WPF Window（通过 Application.Host）。
-/// </summary>
+/// <summary>画面管理器。控制分辨率、全屏、VSync 等。</summary>
 public static class ScreenManager
 {
     private static int _width = 1280;

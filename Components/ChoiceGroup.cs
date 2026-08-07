@@ -1,8 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 选择分支组件。挂载到 GameObject 上以显示多个选项按钮。
-/// </summary>
+/// <summary>选择分支组件。挂载到 GameObject 上以显示多个选项按钮。</summary>
 public sealed class ChoiceGroup : Component
 {
     private string[] _choiceTexts = Array.Empty<string>();
@@ -20,6 +18,12 @@ public sealed class ChoiceGroup : Component
 
     /// <summary>是否有选择结果。</summary>
     public bool HasResult => _selectedIndex >= 0;
+
+    /// <summary>内联模式：false（默认）= 全屏居中菜单；true = 使用 Transform 定位，水平排列，小按钮。</summary>
+    public bool Inline { get; set; }
+
+    /// <summary>高亮索引（仅视觉，不影响选择）。-1 表示不高亮任何选项。</summary>
+    public int HighlightIndex { get; set; } = -1;
 
     /// <summary>当玩家做出选择时触发。</summary>
     public event Action<int>? OnChoiceSelected;

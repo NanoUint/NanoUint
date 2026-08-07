@@ -1,9 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 引擎入口。类似 Unity 的 Application 类。
-/// 封装所有 WPF 启动逻辑，对游戏端仅暴露 Run(IGameBootstrapper)。
-/// </summary>
+/// <summary>引擎入口。封装所有 WPF 启动逻辑，对游戏端仅暴露 Run(IGameBootstrapper)。</summary>
 public static class Application
 {
     private static Rendering.WpfEngineHost? _host;
@@ -21,11 +18,10 @@ public static class Application
         _host?.Shutdown();
     }
 
-    /// <summary>
-    /// 延迟到下一帧执行 action。用于在 UI 事件回调中安全地切换场景。
-    /// </summary>
+    /// <summary>延迟到下一帧执行 action。</summary>
     public static void Defer(Action action)
     {
+        if (action == null) return;
         var win = _host?.GetWindow();
         if (win != null)
             win.Dispatcher.BeginInvoke(
@@ -39,4 +35,13 @@ public static class Application
 
     /// <summary>捕获当前画面缩略图（320x180 JPEG Base64）。存档时使用。</summary>
     public static string? CaptureThumbnail() => _host?.CaptureThumbnail();
+
+    #region 屏幕震动
+
+    /// <summary>屏幕震动 X 偏移（像素）。由 ShakeEffect 协程更新，WpfEngineHost 每帧读取。</summary>
+    public static float ShakeOffsetX { get; set; }
+
+    /// <summary>屏幕震动 Y 偏移（像素）。</summary>
+    public static float ShakeOffsetY { get; set; }
+    #endregion
 }

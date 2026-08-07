@@ -2,9 +2,7 @@ using System.Globalization;
 
 namespace NanoUint.Drawing;
 
-/// <summary>
-/// 三维向量。WPF 无关的纯数学类型，类似 Unity 的 Vector3。
-/// </summary>
+/// <summary>三维向量。WPF 无关的纯数学类型。</summary>
 public readonly struct Vector3 : IEquatable<Vector3>
 {
     public float X { get; }

@@ -3,15 +3,10 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>
-/// 对话历史条目。
-/// </summary>
+/// <summary>对话历史条目。</summary>
 public sealed record BacklogEntry(string SpeakerName, string Text, string? VoicePath);
 
-/// <summary>
-/// 对话历史回看组件。在游戏中记录所有对话，按 Page Up 打开回看。
-/// 支持点击台词重播配音。
-/// </summary>
+/// <summary>对话历史回看组件。记录所有对话，按 Page Up 打开回看，支持点击台词重播配音。</summary>
 public sealed class BacklogView : Behaviour
 {
     private readonly List<BacklogEntry> _entries = new();

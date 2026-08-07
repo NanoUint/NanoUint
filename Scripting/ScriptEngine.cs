@@ -1,13 +1,10 @@
 using System.IO;
 using System.Reflection;
+using NanoUint.Diagnostics;
 
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 顶层脚本引擎，将 .vns 视觉小说脚本的词法分析、解析、编译和执行整合在一起。
-///
-/// 这是游戏项目用来加载和运行脚本的主要 API。
-/// </summary>
+/// <summary>顶层脚本引擎。整合 .vns 脚本的词法分析、解析、编译和执行。</summary>
 public class ScriptEngine
 {
     private readonly ScriptCommandRegistry _registry;
@@ -51,17 +48,11 @@ public class ScriptEngine
     /// <summary>从游戏项目注册一个命令实现</summary>
     public void RegisterCommand(IScriptCommand command) => _registry.Register(command);
 
-    /// <summary>
-    /// 扫描程序集中使用 [RegistryInScript] 装饰的静态方法并自动注册。
-    /// 这是批量注册命令的推荐方式。
-    /// </summary>
+    /// <summary>扫描程序集中 [RegistryInScript] 装饰的静态方法并自动注册。</summary>
     public void ScanCommands(Assembly assembly) =>
         ScriptCommandScanner.ScanAssembly(this, assembly);
 
-    /// <summary>
-    /// 扫描对象实例中使用 [RegistryInScript] 装饰的方法。
-    /// 用于需要服务依赖的命令（实例方法）。
-    /// </summary>
+    /// <summary>扫描对象实例中 [RegistryInScript] 装饰的方法。</summary>
     public void ScanCommands(params object[] instances) =>
         ScriptCommandScanner.ScanInstances(this, instances);
 
@@ -123,7 +114,7 @@ public class ScriptEngine
 
         LogEngine($"Run: _stepIndex={_stepIndex}, steps={_currentScript.Steps.Count}, dispatching ExecuteNext...");
 
-        // 通过 Dispatcher 推迟第一步，使 UI 线程在脚本执行开始前能够更新屏幕。
+        // 通过 Dispatcher 推迟第一步
         var disp = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         LogEngine($"Run: dispatcher ok, posting...");
         disp.BeginInvoke(
@@ -191,25 +182,28 @@ public class ScriptEngine
         _currentScript = null;
     }
 
-    private static void LogEngine(string _) { /* 调试日志 —— 发布时已移除 */ }
+    private static void LogEngine(string msg) => Logger.Trace("ScriptEngine", msg);
 
     // ---- 内部执行 ----
 
-    /// <summary>
-    /// 精确处理一个交互步骤，自动跳过标签和非暂停命令。
-    /// 当遇到玩家必须响应的事件（文本、选择或暂停命令）时返回。
-    /// </summary>
+    /// <summary>处理一个交互步骤，自动跳过标签和非暂停命令，遇到玩家必须响应的事件时返回。</summary>
     private void ExecuteNext()
     {
         LogEngine($"ExecuteNext: _isRunning={_isRunning}, _stepIndex={_stepIndex}, steps={_currentScript?.Steps.Count}");
         if (!_isRunning || _currentScript == null) { LogEngine("ExecuteNext: abort - not running"); return; }
 
         // 跳过标签和非暂停命令，直到遇到交互内容或运行完所有步骤。
-        // 不使用 while(true) —— 每次迭代都会前进 _stepIndex 或返回，因此总会终止。
         int loopCount = 0;
         while (_stepIndex < _currentScript.Steps.Count)
         {
-            if (++loopCount > 100) { LogEngine("ExecuteNext: LOOP LIMIT HIT!"); return; }
+            if (++loopCount > 100)
+            {
+                Logger.Error("ScriptEngine",
+                    $"ExecuteNext: LOOP LIMIT HIT! Possible infinite loop in script " +
+                    $"'{_currentScript?.FilePath ?? "unknown"}' at step {_stepIndex}. Stopping.");
+                EndScript();
+                return;
+            }
 
             var step = _currentScript.Steps[_stepIndex];
             LogEngine($"  Step[{_stepIndex}]: {step.Type}, cmd={step.CommandName}, spk={step.Speaker}, txt={(step.Text ?? "")[..Math.Min(20, step.Text?.Length ?? 0)]}");
@@ -312,7 +306,6 @@ public class ScriptEngine
                 case ScriptStepType.Command:
                     _paused = false;
                     ExecuteCommand(step);
-                    // 注意：暂停的内联命令仍会暂停引擎
                     if (_paused) return;
                     break;
                 case ScriptStepType.Jump:

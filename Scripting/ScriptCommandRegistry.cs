@@ -1,10 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 可用脚本命令的注册表。
-/// 游戏项目在此处注册其命令实现。
-/// 支持别名解析。
-/// </summary>
+/// <summary>可用脚本命令的注册表。游戏项目在此处注册其命令实现。</summary>
 public class ScriptCommandRegistry
 {
     private readonly Dictionary<string, IScriptCommand> _commands = new(StringComparer.OrdinalIgnoreCase);

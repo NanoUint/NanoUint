@@ -1,9 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 音频源组件。挂载到 GameObject 上以播放 BGM/SFX/语音。
-/// 内部封装 NAudio。
-/// </summary>
+/// <summary>音频源组件。挂载到 GameObject 上以播放 BGM/SFX/语音。</summary>
 public sealed class AudioSource : Component
 {
     private AudioClip? _clip;

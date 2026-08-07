@@ -1,9 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 可由引擎执行的脚本命令接口。
-/// 游戏项目实现此接口以提供实际的命令行为。
-/// </summary>
+/// <summary>可由引擎执行的脚本命令接口。游戏项目实现此接口以提供实际命令行为。</summary>
 public interface IScriptCommand
 {
     /// <summary>.vns 脚本中使用的命令名称（例如 "say"、"bg"、"jump"）</summary>

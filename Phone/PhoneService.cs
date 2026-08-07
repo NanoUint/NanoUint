@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace NanoUint;
 
-// ── 手机数据模型（纯 C#） ──
+#region 手机数据模型（纯 C#）
 
 public enum MessageDirection { Incoming, Outgoing }
 public enum CallType { Incoming, Outgoing, Missed }
@@ -66,10 +66,7 @@ public class PhoneSettings
     public float RingtoneVolume { get; set; } = 0.7f;
 }
 
-/// <summary>
-/// 手机服务。纯逻辑，无 UI 依赖。引擎内置。
-/// 游戏端用此服务的数据来搭建自己的手机 UI。
-/// </summary>
+/// <summary>手机服务。纯逻辑、无 UI 依赖，游戏端用它搭建手机 UI。</summary>
 public static class PhoneService
 {
     private static readonly ObservableCollection<PhoneConversation> _conversations = new();
@@ -85,7 +82,7 @@ public static class PhoneService
 
     public static event Action<PhoneNotification>? NotificationReceived;
 
-    // ── 消息 ──
+    #region 消息
 
     public static void ReceiveMessage(string sender, string text)
     {
@@ -117,7 +114,9 @@ public static class PhoneService
         conv.LastActivity = DateTime.Now;
     }
 
-    // ── 通话 ──
+    #endregion
+
+    #region 通话
 
     public static CallEntry ReceiveCall(string caller)
     {
@@ -176,7 +175,9 @@ public static class PhoneService
         }
     }
 
-    // ── 查询 ──
+    #endregion
+
+    #region 查询
 
     public static ObservableCollection<PhoneConversation> GetConversations() => _conversations;
     public static List<PhoneMessage> GetMessages(string contactName)
@@ -190,7 +191,9 @@ public static class PhoneService
                 msg.IsRead = true;
     }
 
-    // ── 内部 ──
+    #endregion
+
+    #region 内部
 
     private static PhoneConversation GetOrCreateConversation(string contactName)
     {
@@ -203,7 +206,9 @@ public static class PhoneService
         return conv;
     }
 
-    // ── 持久化 ──
+    #endregion
+
+    #region 持久化
 
     private static readonly string _savePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -287,4 +292,7 @@ public static class PhoneService
     private class ConversationData { public string ContactName { get; set; } = ""; public List<MessageData> Messages { get; set; } = new(); }
     private class MessageData { public string SenderName { get; set; } = ""; public string Text { get; set; } = ""; public DateTime Timestamp { get; set; } public bool IsRead { get; set; } public bool IsOutgoing { get; set; } }
     private class CallData { public string CallerName { get; set; } = ""; public DateTime Timestamp { get; set; } public CallType Type { get; set; } public TimeSpan Duration { get; set; } }
+    #endregion
 }
+
+#endregion

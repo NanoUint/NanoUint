@@ -1,9 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 章节资源清单。每个 C# 章节声明它需要的所有资源路径，
-/// 供 Splash 页面在游戏开始前预加载到缓存中。
-/// </summary>
+/// <summary>章节资源清单。每个章节声明需要的资源路径，供启动前预加载。</summary>
 public class ChapterAssets
 {
     /// <summary>背景图片路径列表</summary>
@@ -24,9 +21,7 @@ public class ChapterAssets
     /// <summary>所有图片路径（背景 + 立绘）</summary>
     public IEnumerable<string> AllImagePaths => Backgrounds.Concat(Sprites);
 
-    /// <summary>
-    /// 将所有图片路径解析为绝对文件路径。
-    /// </summary>
+    /// <summary>将所有图片路径解析为绝对文件路径。</summary>
     public IEnumerable<string> ResolveAllImages()
     {
         foreach (var p in AllImagePaths)
@@ -36,9 +31,7 @@ public class ChapterAssets
         }
     }
 
-    /// <summary>
-    /// 将所有音频路径解析为绝对文件路径（BGM + SFX + Voice）。
-    /// </summary>
+    /// <summary>将所有音频路径解析为绝对文件路径（BGM + SFX + Voice）。</summary>
     public IEnumerable<string> ResolveAllAudio()
     {
         foreach (var list in new[] { BGM, SFX, Voice })

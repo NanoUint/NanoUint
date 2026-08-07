@@ -1,12 +1,10 @@
 using System.IO;
 using Newtonsoft.Json;
+using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>
-/// 存档管理器。引擎内置，20 槽 JSON 持久化，原子文件写入。
-/// 借鉴 VoidNovelEngine-dev 的 save_manager：Schema 版本化 + 保存边界检查。
-/// </summary>
+/// <summary>存档管理器。20 槽 JSON 持久化，原子文件写入。</summary>
 public static class SaveManager
 {
     public const int MaxSlots = 30;
@@ -24,7 +22,7 @@ public static class SaveManager
         internal set => _allowSave = value;
     }
 
-    // ── 快速存档 ──
+    #region 快速存档
 
     public static void QuickSave(SaveData data)
     {
@@ -54,14 +52,17 @@ public static class SaveManager
                 PlayTime = data?.PlayTime ?? TimeSpan.Zero,
             };
         }
-        catch { return null; }
+        catch (Exception ex) { Logger.Warning("SaveManager", $"Quick save info read failed: {ex.Message}"); return null; }
     }
 
-    // ── 存档操作 ──
+    #endregion
+
+    #region 存档操作
 
     public static void Save(int slotIndex, SaveData data)
     {
-        if (slotIndex < 0 || slotIndex >= MaxSlots)
+        // QuickSave slot (99) bypasses the normal bounds check
+        if (slotIndex != QuickSaveSlot && (slotIndex < 0 || slotIndex >= MaxSlots))
             throw new ArgumentOutOfRangeException(nameof(slotIndex));
 
         if (!_allowSave)
@@ -98,7 +99,8 @@ public static class SaveManager
 
     public static SaveData? Load(int slotIndex)
     {
-        if (slotIndex < 0 || slotIndex >= MaxSlots)
+        // QuickSave slot (99) bypasses the normal bounds check
+        if (slotIndex != QuickSaveSlot && (slotIndex < 0 || slotIndex >= MaxSlots))
             throw new ArgumentOutOfRangeException(nameof(slotIndex));
 
         try
@@ -108,6 +110,11 @@ public static class SaveManager
 
             var json = File.ReadAllText(path);
             var data = JsonConvert.DeserializeObject<SaveData>(json);
+            if (data != null && !ValidateSaveData(data))
+            {
+                Debug.LogError($"SaveManager: Slot {slotIndex} failed validation — data may be corrupted or tampered.");
+                return null;
+            }
             Debug.Log($"SaveManager: Loaded slot {slotIndex} ({data?.ChapterName})");
             return data;
         }
@@ -116,6 +123,34 @@ public static class SaveManager
             Debug.LogError($"SaveManager: Failed to load slot {slotIndex}: {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>验证反序列化后的存档数据，防止恶意存档注入。</summary>
+    private static bool ValidateSaveData(SaveData data)
+    {
+        const int maxStringLength = 4096;
+        const int maxCollectionSize = 1000;
+
+        if (data.ChapterName.Length > maxStringLength)
+            return false;
+        if (data.CurrentBackground?.Length > maxStringLength)
+            return false;
+        if (data.CurrentBGM?.Length > maxStringLength)
+            return false;
+        if (data.ScriptStateJson?.Length > 65536)  // 脚本状态可以大一些
+            return false;
+        if (data.SceneStateJson?.Length > 65536)
+            return false;
+        if (data.ThumbnailBase64?.Length > 2_000_000)  // ~1.5MB base64 缩略图
+            return false;
+        if (data.Flags.Count > maxCollectionSize)
+            return false;
+        if (data.ChoiceHistory.Count > maxCollectionSize)
+            return false;
+        if (data.SchemaVersion < 1 || data.SchemaVersion > 99)
+            return false;
+
+        return true;
     }
 
     public static void Delete(int slotIndex)
@@ -159,7 +194,7 @@ public static class SaveManager
                         PlayTime = data?.PlayTime ?? TimeSpan.Zero,
                     });
                 }
-                catch { /* 跳过损坏的存档 */ }
+                catch (Exception ex) { Logger.Warning("SaveManager", $"Skipping corrupted slot {i}: {ex.Message}"); }
             }
         }
         return slots.OrderByDescending(s => s.SaveTime).ToList();
@@ -175,11 +210,10 @@ public static class SaveManager
 
     private static string GetSlotPath(int slotIndex)
         => Path.Combine(SaveDirectory, $"save_{slotIndex:D2}.json");
+    #endregion
 }
 
-/// <summary>
-/// 存档数据 DTO。
-/// </summary>
+/// <summary>存档数据 DTO。</summary>
 public class SaveData
 {
     public int SchemaVersion { get; set; } = 1;
@@ -200,9 +234,7 @@ public class SaveData
         => $"{SaveTime:yyyy/MM/dd HH:mm} - {ChapterName}";
 }
 
-/// <summary>
-/// 存档槽摘要信息（用于列表显示）。
-/// </summary>
+/// <summary>存档槽摘要信息（用于列表显示）。</summary>
 public class SaveSlotInfo
 {
     public int SlotIndex { get; set; }

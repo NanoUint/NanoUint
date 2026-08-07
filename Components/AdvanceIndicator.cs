@@ -2,10 +2,7 @@ using System.Collections;
 
 namespace NanoUint;
 
-/// <summary>
-/// 继续阅读指示器。在文字框右下角提示玩家按 Enter 继续。
-/// 打字机完成后显示闪烁动画，Enter 按下后隐藏。
-/// </summary>
+/// <summary>继续阅读指示器。在文字框右下角提示玩家按 Enter 继续。</summary>
 public sealed class AdvanceIndicator : Behaviour
 {
     private bool _visible;

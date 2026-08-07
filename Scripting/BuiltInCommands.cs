@@ -1,24 +1,12 @@
 using System.Diagnostics;
 using System.Windows;
-using NanoUint.Services;
+using NanoUint.Diagnostics;
+using NanoUint.Debugging;
 using WpfApplication = System.Windows.Application;
 
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 内置脚本命令，提供 Win32 / 系统操作。
-/// 扫描 NanoUint 程序集时自动注册。
-/// 所有命令使用 [RegistryInScript] 特性进行声明式注册。
-///
-/// .vns 中的用法：
-///   @sys_message("你好世界", title: "信息")
-///   @sys_open_url("https://bing.com")
-///   @sys_exit()
-///   @sys_run("notepad.exe")
-///   @sys_window_title("第二章")
-///   @sys_clipboard("复制的文本")
-///   @log("调试消息")
-/// </summary>
+/// <summary>内置脚本命令。提供 Win32 / 系统操作，扫描 NanoUint 程序集时自动注册。</summary>
 public static class BuiltInCommands
 {
     #region 系统 / Win32
@@ -32,10 +20,7 @@ public static class BuiltInCommands
             WpfApplication.Current.Shutdown((int)code));
     }
 
-    /// <summary>
-    /// @sys_message(text, title: "Info") —— 显示 Windows 消息框
-    /// 暂停脚本直到用户关闭对话框。
-    /// </summary>
+    /// <summary>@sys_message：显示 Windows 消息框，暂停脚本直到用户关闭。</summary>
     [RegistryInScript("sys_message")]
     public static void SysMessage(ScriptCommandContext ctx)
     {
@@ -47,14 +32,10 @@ public static class BuiltInCommands
             System.Windows.MessageBox.Show(text, title, MessageBoxButton.OK, MessageBoxImage.Information);
         });
 
-        // 暂停脚本以防止对话框打开时脚本继续执行
         ctx.Engine.RequestPause();
     }
 
-    /// <summary>
-    /// @sys_confirm(text, title: "Confirm") —— 显示是/否对话框
-    /// 流程绑定：-> yes:#label no:#label
-    /// </summary>
+    /// <summary>@sys_confirm：显示是/否对话框。流程绑定：-> yes:#label no:#label。</summary>
     [RegistryInScript("sys_confirm")]
     public static void SysConfirm(ScriptCommandContext ctx)
     {
@@ -101,10 +82,7 @@ public static class BuiltInCommands
         }
     }
 
-    /// <summary>
-    /// @sys_run(program, args: "") —— 运行外部程序
-    /// 示例：@sys_run("notepad.exe", args: "readme.txt")
-    /// </summary>
+    /// <summary>@sys_run：运行外部程序。</summary>
     [RegistryInScript("sys_run")]
     public static void SysRun(ScriptCommandContext ctx)
     {
@@ -143,11 +121,10 @@ public static class BuiltInCommands
     public static void SysClipboard(ScriptCommandContext ctx)
     {
         var text = ctx.Arg<string>(0) ?? "";
-        // 剪贴板必须在 STA 线程中调用
         WpfApplication.Current.Dispatcher.Invoke(() =>
         {
             try { Clipboard.SetText(text); }
-            catch { /* 剪贴板可能被锁定 */ }
+            catch (Exception ex) { Logger.Warning("BuiltIn", $"[sys_clipboard] Clipboard locked: {ex.Message}"); }
         });
     }
 
@@ -200,10 +177,7 @@ public static class BuiltInCommands
         DebugConsole.Log("Script", message);
     }
 
-    /// <summary>
-    /// @wait(seconds) —— 暂停脚本一段时间。
-    /// 使用异步延迟，保持 UI 响应。
-    /// </summary>
+    /// <summary>@wait：暂停脚本一段时间。</summary>
     [RegistryInScript("wait")]
     public static void Wait(ScriptCommandContext ctx)
     {

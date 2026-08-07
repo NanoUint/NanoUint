@@ -1,9 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 背景渲染器。挂载到 GameObject 上以显示全屏背景图。
-/// 支持双纹理交叉淡入淡出（借鉴 VoidNovelEngine-dev 的 BackgroundObject）。
-/// </summary>
+/// <summary>背景渲染器。挂载到 GameObject 上以显示全屏背景图，支持双纹理交叉淡入淡出。</summary>
 public sealed class BackgroundRenderer : Component
 {
     private Sprite? _sprite;

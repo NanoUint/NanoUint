@@ -2,9 +2,7 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>
-/// 简易文本渲染器。显示纯文本字符串。
-/// </summary>
+/// <summary>简易文本渲染器。显示纯文本字符串。</summary>
 public sealed class TextRenderer : Component
 {
     private string _content = "";

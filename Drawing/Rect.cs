@@ -1,8 +1,6 @@
 namespace NanoUint.Drawing;
 
-/// <summary>
-/// 纯 C# 矩形结构，无 WPF 依赖。
-/// </summary>
+/// <summary>纯 C# 矩形结构，无 WPF 依赖。</summary>
 public struct Rect
 {
     public float X, Y, Width, Height;

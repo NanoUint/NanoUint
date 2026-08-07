@@ -4,16 +4,13 @@ using NanoUint.Scripting;
 
 namespace NanoUint;
 
-/// <summary>
-/// 脚本管理器。类似 Unity 的场景脚本系统，是 .vns 管道的高层 API。
-/// 游戏端通过 ScriptManager.Load/Run 加载和执行视觉小说脚本。
-/// </summary>
+/// <summary>脚本管理器。.vns 管道的高层 API，游戏端通过 Load/Run 加载和执行脚本。</summary>
 public static class ScriptManager
 {
     private static ScriptEngine? _engine;
     private static CompiledScript? _currentScript;
 
-    // ── 事件 ──
+    #region 事件
 
     /// <summary>对话文本事件：(speaker, text)</summary>
     public static event Action<string?, string>? OnDialogue;
@@ -30,7 +27,9 @@ public static class ScriptManager
     public static bool IsRunning => _engine?.IsRunning ?? false;
     public static string? CurrentScriptName => _engine?.CurrentScriptName;
 
-    // ── 加载 ──
+    #endregion
+
+    #region 加载
 
     /// <summary>从嵌入资源路径加载 .vns 脚本。</summary>
     public static CompiledScript Load(string resourcePath)
@@ -76,7 +75,9 @@ public static class ScriptManager
         return compiled;
     }
 
-    // ── 执行 ──
+    #endregion
+
+    #region 执行
 
     /// <summary>运行已编译的脚本。执行前预加载所有引用的资源。</summary>
     public static void Run(CompiledScript script, string? startLabel = null)
@@ -88,7 +89,7 @@ public static class ScriptManager
 
         _currentScript = script;
 
-        // 预加载脚本中引用的所有资源（避免执行时阻塞 UI 线程）
+        // 预加载脚本中引用的所有资源
         PreloadScriptAssets(script);
 
         // 绑定引擎事件到静态事件
@@ -101,10 +102,7 @@ public static class ScriptManager
         Debug.Log($"ScriptManager: Running '{script.FilePath}'{(startLabel != null ? $" @ {startLabel}" : "")}");
     }
 
-    /// <summary>
-    /// 预加载编译脚本中所有引用的资源（背景、立绘、音频）。
-    /// 这确保脚本执行时资源已缓存，不会阻塞 UI 线程。
-    /// </summary>
+    /// <summary>预加载编译脚本中所有引用的资源（背景、立绘、音频）。</summary>
     private static void PreloadScriptAssets(CompiledScript script)
     {
         // 需要预加载资源的命令及其参数
@@ -125,7 +123,7 @@ public static class ScriptManager
                 var sprite = AssetDatabase.Load<Sprite>(path);
                 if (sprite != null)
                 {
-                    // 预热 BitmapImage 缓存，避免首次渲染时解码 PNG 阻塞
+                    // 预热 BitmapImage 缓存
                     Rendering.WpfRenderer.WarmupBitmap(sprite);
                     loaded++;
                 }
@@ -172,14 +170,28 @@ public static class ScriptManager
         _engine?.JumpToLabel(label);
     }
 
-    // ── 变量/标志 ──
+    #endregion
+
+    #region 变量/标志
 
     public static void SetFlag(string name, bool value) => _engine?.SetFlag(name, value);
     public static bool GetFlag(string name) => _engine?.GetFlag(name) ?? false;
     public static void SetVariable(string name, object? value) => _engine?.SetVariable(name, value);
     public static object? GetVariable(string name) => _engine?.GetVariable(name);
 
-    // ── 内部 ──
+    /// <summary>导出当前脚本执行状态（存档用）。VNS 模式有效，C# 模式返回 null。</summary>
+    public static ScriptSaveState? SaveState() => _engine?.SaveState();
+
+    /// <summary>从存档恢复脚本执行状态。</summary>
+    public static void LoadState(ScriptSaveState state) => _engine?.LoadState(state);
+
+    /// <summary>获取脚本引擎的所有 Flag（存档用）。</summary>
+    public static IReadOnlyDictionary<string, bool> GetAllFlags()
+        => _engine?.GetAllFlags() ?? new Dictionary<string, bool>();
+
+    #endregion
+
+    #region 内部
 
     private static ScriptEngine GetOrCreateEngine()
     {
@@ -192,6 +204,18 @@ public static class ScriptManager
     }
 
     private static bool _commandsRegistered;
+    private static object[]? _gameCommandInstances;
+
+    /// <summary>注册游戏层 VNS 命令。在 IGameBootstrapper.OnStart 中调用。</summary>
+    public static void RegisterGameCommands(params object[] instances)
+    {
+        _gameCommandInstances = instances;
+        if (_engine != null)
+        {
+            _engine.ScanCommands(instances);
+            Debug.Log($"ScriptManager: {instances.Length} game command instance(s) registered.");
+        }
+    }
 
     private static void EnsureCommandsRegistered(ScriptEngine engine)
     {
@@ -201,6 +225,13 @@ public static class ScriptManager
         // 注册引擎内置命令（EngineCommands 使用静态 AudioManager + Scene API）
         engine.ScanCommands(new EngineCommands());
         Debug.Log("ScriptManager: Engine commands registered.");
+
+        // 注册游戏层命令（如果已设置）
+        if (_gameCommandInstances != null)
+        {
+            engine.ScanCommands(_gameCommandInstances);
+            Debug.Log($"ScriptManager: Game commands registered ({_gameCommandInstances.Length} instances).");
+        }
     }
 
     private static void RegisterInternalCommands(ScriptEngine engine)
@@ -209,4 +240,5 @@ public static class ScriptManager
         var asm = Assembly.GetExecutingAssembly();
         engine.ScanCommands(asm);
     }
+    #endregion
 }

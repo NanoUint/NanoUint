@@ -2,10 +2,7 @@ using System.IO;
 
 namespace NanoUint;
 
-/// <summary>
-/// 热重载监视器。监听脚本目录的文件变动，自动重新加载 .vns 脚本。
-/// 游戏开发者修改 .vns 文件后无需重启即可看到变化。
-/// </summary>
+/// <summary>热重载监视器。监听脚本目录的文件变动，自动重新加载 .vns 脚本。</summary>
 public sealed class HotReloadWatcher : IDisposable
 {
     private readonly string _watchDirectory;

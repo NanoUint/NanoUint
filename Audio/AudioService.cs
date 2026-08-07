@@ -1,13 +1,12 @@
 using System.IO;
 using NAudio.Wave;
 using NAudio.Vorbis;
+using NanoUint.Debugging;
+using NanoUint.Diagnostics;
 
-namespace NanoUint.Services;
+namespace NanoUint.Audio;
 
-/// <summary>
-/// 管理 BGM、SFX 和语音的音频播放。
-/// 使用 NAudio 支持 MP3/WAV/OGG 等多种格式。
-/// </summary>
+/// <summary>管理 BGM、SFX 和语音的音频播放。</summary>
 public class AudioService : IDisposable
 {
     private WaveOutEvent? _bgmOut;
@@ -108,7 +107,7 @@ public class AudioService : IDisposable
                         _bgmStream.Position = 0;
                         _bgmOut.Play();
                     }
-                    catch { /* 设备已释放 */ }
+                    catch (Exception ex) { Logger.Trace("Audio", $"BGM loop reset failed (device released?): {ex.Message}"); }
                 }
             };
             _bgmOut.Init(stream);

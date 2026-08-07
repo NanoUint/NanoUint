@@ -3,12 +3,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace NanoUint.Services;
+namespace NanoUint.Debugging;
 
-/// <summary>
-/// 用于开发的实时调试控制台。调用 AllocConsole 创建一个
-/// Windows 控制台窗口，与 WPF GUI 并排显示实时日志输出。
-/// </summary>
+/// <summary>开发用的实时调试控制台。创建 Windows 控制台窗口并排显示日志输出。</summary>
 public static class DebugConsole
 {
     [DllImport("kernel32.dll")]

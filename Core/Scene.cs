@@ -2,10 +2,7 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>
-/// 场景：GameObject 的容器，也是保存/加载的序列化单元。
-/// 借鉴 VoidNovelEngine-dev 的 Scene 设计——扁平有序的对象列表 + Z-Index 排序。
-/// </summary>
+/// <summary>场景：GameObject 的容器，也是保存/加载的序列化单元。</summary>
 public sealed class Scene
 {
     private readonly List<GameObject> _objects = new();
@@ -31,18 +28,36 @@ public sealed class Scene
         Logger.Trace("Scene", $"Created: '{name}'");
     }
 
-    // ── 对象管理 ──
+    #region 对象管理
 
-    /// <summary>向场景添加一个 GameObject。</summary>
+    /// <summary>向场景添加一个已构造的 GameObject（如 Instantiate 产出）。</summary>
+    public GameObject AddObject(GameObject go)
+    {
+        // 检测同名冲突并自动重命名
+        if (_objectMap.ContainsKey(go.Name))
+        {
+            int suffix = 1;
+            string originalName = go.Name;
+            while (_objectMap.ContainsKey($"{originalName}_{suffix}"))
+                suffix++;
+            Logger.Warning("Scene",
+                $"Name collision: '{go.Name}' already exists in scene '{Name}'. Renaming to '{originalName}_{suffix}'.");
+            go.Name = $"{originalName}_{suffix}";
+        }
+
+        _objects.Add(go);
+        _objectMap[go.Name] = go;
+        _orderDirty = true;
+        go.NotifyAdded(this);
+        Logger.Trace("Scene", $"'{Name}': +{go.Name} (total:{_objects.Count})");
+        return go;
+    }
+
+    /// <summary>向场景添加一个新的 GameObject。</summary>
     public GameObject AddObject(string name = "GameObject")
     {
         var go = new GameObject(name);
-        _objects.Add(go);
-        _objectMap[name] = go;
-        _orderDirty = true;
-        go.NotifyAdded(this);
-        Logger.Trace("Scene", $"'{Name}': +{name} (total:{_objects.Count})");
-        return go;
+        return AddObject(go);
     }
 
     /// <summary>按名称查找对象。O(1)。</summary>
@@ -67,7 +82,9 @@ public sealed class Scene
         Logger.Trace("Scene", $"'{Name}': -{obj.Name} (total:{_objects.Count})");
     }
 
-    // ── 主循环 ──
+    #endregion
+
+    #region 主循环
 
     /// <summary>更新场景中所有激活的对象。由引擎每帧调用。</summary>
     internal void Update(float deltaTime)
@@ -90,7 +107,9 @@ public sealed class Scene
         CoroutineScheduler.Instance.Tick(deltaTime);
     }
 
-    // ── 保存/加载 ──
+    #endregion
+
+    #region 保存/加载
 
     /// <summary>收集场景中所有对象的可保存状态。</summary>
     public SceneSaveState CollectSaveState()
@@ -134,9 +153,10 @@ public sealed class Scene
     }
 
     public override string ToString() => $"Scene '{Name}' ({_objects.Count(o => !o.IsDestroyed)} objects)";
+    #endregion
 }
 
-// ── 保存状态 DTO ──
+#region 保存状态 DTO
 
 public class SceneSaveState
 {
@@ -154,3 +174,5 @@ public class GameObjectSaveState
     public bool TransformFlipX { get; set; }
     public int SortingOrder { get; set; }
 }
+
+#endregion

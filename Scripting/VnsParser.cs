@@ -1,9 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// .vns 脚本文件的递归下降解析器。
-/// 从词法分析器获取 Token 并构建 VnsDocument AST。
-/// </summary>
+/// <summary>.vns 脚本文件的递归下降解析器。构建 VnsDocument AST。</summary>
 public class VnsParser
 {
     private readonly List<Token> _tokens;

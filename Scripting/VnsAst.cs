@@ -2,7 +2,6 @@ namespace NanoUint.Scripting;
 
 #region .vns AST节点类型
 // .vns 文本脚本语言的 AST 节点类型。
-// 镜像 VoidNovelEngine 的脚本结构。
 
 /// <summary>源文件中的位置（行，列）</summary>
 public readonly record struct SourceLocation(int Line, int Column, string FilePath = "")

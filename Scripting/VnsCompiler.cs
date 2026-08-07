@@ -1,9 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 将解析后的 .vns 文档（AST）编译为扁平的 ScriptStep 序列。
-/// 解析别名、if/choice 结构和跳转目标。
-/// </summary>
+/// <summary>将 .vns 文档（AST）编译为扁平的 ScriptStep 序列（解析别名、if/choice 和跳转目标）。</summary>
 public class VnsCompiler
 {
     private readonly ScriptCommandRegistry _registry;

@@ -3,17 +3,13 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>
-/// 精灵渲染器。挂载到 GameObject 上以显示一张 2D 图片（角色立绘、Logo 等）。
-/// 引擎内部翻译为 WPF Image 控件。
-/// 支持口型动画：设置 MouthClosed/MouthHalf/MouthOpen 后调用 StartMouthFlap/StopMouthFlap。
-/// </summary>
+/// <summary>精灵渲染器。挂载到 GameObject 上以显示 2D 图片（立绘、Logo 等），支持口型动画。</summary>
 public sealed class SpriteRenderer : Behaviour
 {
     private Sprite? _sprite;
     private Color _tint = Color.White;
 
-    // ── 口型动画 ──
+    #region 口型动画
     private Sprite? _mouthClosed, _mouthHalf, _mouthOpen;
     private bool _isSpeaking;
     private int _currentMouthFrame; // 0=闭口, 1=半开, 2=全开
@@ -29,11 +25,6 @@ public sealed class SpriteRenderer : Behaviour
             {
                 _sprite = value;
                 MarkDirty();
-                if (value != null && GameObject?.Transform != null && GameObject.Transform.X == 0 && GameObject.Transform.Y == 0)
-                {
-                    GameObject.Transform.X = 0.5f;
-                    GameObject.Transform.Y = 0.3f;
-                }
             }
         }
     }
@@ -45,7 +36,9 @@ public sealed class SpriteRenderer : Behaviour
         set { if (!_tint.Equals(value)) { _tint = value; MarkDirty(); } }
     }
 
-    // ── 口型帧 ──
+    #endregion
+
+    #region 口型帧
 
     /// <summary>闭口帧（口型动画 _0）。</summary>
     public Sprite? MouthClosed
@@ -153,4 +146,5 @@ public sealed class SpriteRenderer : Behaviour
 
     public override string ToString() => $"SpriteRenderer (sprite={(Sprite != null ? Sprite.Name : "null")}" +
         $"{(HasMouthFlap ? " [mouth flap]" : "")})";
+    #endregion
 }

@@ -1,11 +1,9 @@
 using System.Collections.Concurrent;
+using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>
-/// 多语言管理器。引擎内置，支持通过字符串 key 获取翻译文本。
-/// 语言文件为内嵌的 XAML 资源字典，引擎在启动时自动加载。
-/// </summary>
+/// <summary>多语言管理器。支持通过字符串 key 获取翻译文本。</summary>
 public static class LocalizationManager
 {
     private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _locales = new();
@@ -56,7 +54,7 @@ public static class LocalizationManager
     {
         var template = Get(key);
         try { return string.Format(template, args); }
-        catch { return template; }
+        catch (FormatException ex) { Logger.Warning("Localization", $"Format failed key='{key}' args={args.Length}: {ex.Message}"); return template; }
     }
 
     /// <summary>加载引擎内嵌的默认多语言数据。</summary>

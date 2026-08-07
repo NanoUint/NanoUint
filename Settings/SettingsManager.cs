@@ -3,10 +3,7 @@ using Newtonsoft.Json;
 
 namespace NanoUint;
 
-/// <summary>
-/// 设置管理器。统一管理所有游戏设置的持久化。
-/// 所有属性自动触发 OnChanged 事件，游戏可监听以实时应用设置。
-/// </summary>
+/// <summary>设置管理器。统一管理所有游戏设置的持久化。</summary>
 public static class SettingsManager
 {
     private static SettingsData _data = new();
@@ -14,7 +11,7 @@ public static class SettingsManager
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         "NanoUint", "settings.json");
 
-    // ── 音频 ──
+    #region 音频
     public static float MasterVolume
     {
         get => _data.MasterVolume;
@@ -36,7 +33,9 @@ public static class SettingsManager
         set => SetProperty(nameof(VoiceVolume), value, v => _data.VoiceVolume = Math.Clamp(v, 0f, 1f));
     }
 
-    // ── 画面 ──
+    #endregion
+
+    #region 画面
     public static int ResolutionWidth
     {
         get => _data.ResolutionWidth;
@@ -63,7 +62,9 @@ public static class SettingsManager
         set => SetProperty(nameof(ShowFPS), value, v => _data.ShowFPS = v);
     }
 
-    // ── 游戏体验 ──
+    #endregion
+
+    #region 游戏体验
     public static float TextSpeed
     {
         get => _data.TextSpeed;
@@ -80,14 +81,28 @@ public static class SettingsManager
         set => SetProperty(nameof(AutoAdvanceDelay), value, v => _data.AutoAdvanceDelay = Math.Clamp(v, 0.5f, 10f));
     }
 
-    // ── 语言 ──
+    #endregion
+
+    #region 语言
     public static string Language
     {
         get => _data.Language;
         set => SetProperty(nameof(Language), value, v => _data.Language = v);
     }
 
-    // ── 事件 ──
+    #endregion
+
+    #region 跳过模式
+    /// <summary>Skip 模式：false=仅跳过已读，true=跳过全部。</summary>
+    public static bool SkipAll
+    {
+        get => _data.SkipAll;
+        set => SetProperty(nameof(SkipAll), value, v => _data.SkipAll = v);
+    }
+
+    #endregion
+
+    #region 事件
     public static event Action<string>? OnChanged;
 
     private static void SetProperty<T>(string name, T value, Action<T> setter)
@@ -99,7 +114,9 @@ public static class SettingsManager
 
     private static bool _dirty;
 
-    // ── 持久化 ──
+    #endregion
+
+    #region 持久化
 
     public static void Save()
     {
@@ -113,7 +130,7 @@ public static class SettingsManager
             var json = JsonConvert.SerializeObject(_data, Formatting.Indented);
             File.WriteAllText(tmp, json);
 
-            // .tmp → .bak → target（借鉴 VoidNovelEngine-dev）
+            // .tmp → .bak → target
             var bak = SavePath + ".bak";
             if (File.Exists(bak)) File.Delete(bak);
             if (File.Exists(SavePath)) File.Move(SavePath, bak);
@@ -166,5 +183,7 @@ public static class SettingsManager
         public bool AutoAdvance { get; set; }
         public float AutoAdvanceDelay { get; set; } = 3f;
         public string Language { get; set; } = "zh-CN";
+        public bool SkipAll { get; set; } // false = skip read only (default)
     }
+    #endregion
 }

@@ -2,10 +2,7 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>
-/// 引擎调试日志。类似 UnityEngine.Debug。
-/// 底层委托给 NanoUint.Diagnostics.Logger。
-/// </summary>
+/// <summary>引擎调试日志。</summary>
 public static class Debug
 {
     public static event Action<string>? OnLog;

@@ -4,9 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace NanoUint.Diagnostics;
 
-/// <summary>
-/// 日志级别。
-/// </summary>
+/// <summary>日志级别。</summary>
 public enum LogLevel
 {
     Trace = 0,
@@ -15,9 +13,7 @@ public enum LogLevel
     Error = 3,
 }
 
-/// <summary>
-/// 单条日志记录。
-/// </summary>
+/// <summary>单条日志记录。</summary>
 public readonly struct LogEntry
 {
     public DateTime Timestamp { get; init; }
@@ -31,10 +27,7 @@ public readonly struct LogEntry
         => $"{Timestamp:HH:mm:ss.fff} [{Level.ToString().ToUpperInvariant()}] [{Tag}] {Message}";
 }
 
-/// <summary>
-/// 引擎级日志系统。支持分级、标签、文件写入、内存环形缓冲。
-/// 所有引擎和游戏层都应使用此 Logger 记录关键事件。
-/// </summary>
+/// <summary>引擎级日志系统。支持分级、标签、文件写入、内存环形缓冲。</summary>
 public static class Logger
 {
     private const int RingBufferSize = 1024;
@@ -45,7 +38,7 @@ public static class Logger
     private static readonly object _fileLock = new();
     private static bool _initialized;
 
-    // ── 事件 ──
+    #region 事件
 
     /// <summary>每当有日志写入时触发（含 Trace 级别）。可用于游戏内控制台。</summary>
     public static event Action<LogEntry>? OnEntryWritten;
@@ -59,7 +52,9 @@ public static class Logger
     /// <summary>Error 级别日志写入时触发。</summary>
     public static event Action<LogEntry>? OnErrorWritten;
 
-    // ── 属性 ──
+    #endregion
+
+    #region 属性
 
     /// <summary>当前最低输出级别。</summary>
     public static LogLevel MinimumLevel { get; set; } = LogLevel.Trace;
@@ -73,7 +68,9 @@ public static class Logger
     /// <summary>日志文件目录。</summary>
     public static string? LogDirectory => _logDir;
 
-    // ── 初始化 ──
+    #endregion
+
+    #region 初始化
 
     /// <summary>初始化日志系统，打开文件写入。</summary>
     public static void Initialize(string? logDir = null)
@@ -119,7 +116,9 @@ public static class Logger
         }
     }
 
-    // ── 公开 API ──
+    #endregion
+
+    #region 公开 API
 
     public static void Trace(string tag, string message,
         [CallerFilePath] string? callerPath = null,
@@ -158,7 +157,9 @@ public static class Logger
             callerPath, callerLine);
     }
 
-    // ── 内部写入 ──
+    #endregion
+
+    #region 内部写入
 
     private static void Write(LogLevel level, string tag, string message,
         string? callerPath, int callerLine)
@@ -200,7 +201,7 @@ public static class Logger
             if (level >= LogLevel.Warning) OnWarningWritten?.Invoke(entry);
             if (level >= LogLevel.Error) OnErrorWritten?.Invoke(entry);
         }
-        catch { /* 事件处理器的异常不应影响日志写入 */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Logger] Event handler threw: {ex}"); }
     }
 
     private static void FileLog(string line)
@@ -208,11 +209,13 @@ public static class Logger
         lock (_fileLock)
         {
             try { _fileWriter?.WriteLine(line); }
-            catch { /* 文件写入失败不影响引擎 */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Logger] File write failed: {ex.Message}"); }
         }
     }
 
-    // ── 工具 ──
+    #endregion
+
+    #region 工具
 
     /// <summary>获取指定级别以上的最近日志。</summary>
     public static LogEntry[] GetRecentEntries(LogLevel minLevel = LogLevel.Trace)
@@ -230,4 +233,5 @@ public static class Logger
             all.Count(e => e.Level == LogLevel.Warning)
         );
     }
+    #endregion
 }

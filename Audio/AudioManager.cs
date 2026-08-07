@@ -4,10 +4,7 @@ using NAudio.Vorbis;
 
 namespace NanoUint;
 
-/// <summary>
-/// 音频管理器。引擎内置的静态 API，管理 BGM/SFX/Voice 播放和音量。
-/// 内部使用 NAudio。
-/// </summary>
+/// <summary>音频管理器。引擎内置的静态 API，管理 BGM/SFX/Voice 播放和音量。</summary>
 public static class AudioManager
 {
     private static WaveOutEvent? _bgmDevice;
@@ -15,14 +12,17 @@ public static class AudioManager
     private static WaveOutEvent? _voiceDevice;
 
     private static WaveStream? _bgmStream;
+    private static WaveStream? _voiceStream;
     private static string? _currentBgmPath;
+    private static bool _isStoppingBgm;
+    private static bool _isStoppingVoice;
 
     private static float _masterVolume = 1f;
     private static float _bgmVolume = 1f;
     private static float _sfxVolume = 1f;
     private static float _voiceVolume = 1f;
 
-    // ── 音量 ──
+    #region 音量
 
     public static float MasterVolume
     {
@@ -49,12 +49,34 @@ public static class AudioManager
     private static float EffectiveSFXVolume => _masterVolume * _sfxVolume;
     private static float EffectiveVoiceVolume => _masterVolume * _voiceVolume;
 
-    // ── 事件 ──
+    #endregion
+
+    #region 事件
 
     public static event Action? VoiceFinished;
     public static bool IsVoicePlaying { get; private set; }
 
-    // ── BGM ──
+    /// <summary>当前正在播放的语音总时长（秒）。语音未播放时返回 0。</summary>
+    public static double VoiceDuration =>
+        _voiceStream?.TotalTime.TotalSeconds ?? 0.0;
+
+    /// <summary>预先探测语音文件的时长（秒）。独立打开文件读取 TotalTime，不受播放状态影响。</summary>
+    public static double ProbeVoiceDuration(string resourcePath)
+    {
+        try
+        {
+            using var stream = CreateReader(resourcePath);
+            return stream.TotalTime.TotalSeconds;
+        }
+        catch
+        {
+            return 0.0;
+        }
+    }
+
+    #endregion
+
+    #region BGM
 
     public static void PlayBGM(string resourcePath)
     {
@@ -82,12 +104,14 @@ public static class AudioManager
 
     public static void StopBGM()
     {
+        _isStoppingBgm = true;
         _bgmDevice?.Stop();
         _bgmDevice?.Dispose();
         _bgmStream?.Dispose();
         _bgmDevice = null;
         _bgmStream = null;
         _currentBgmPath = null;
+        _isStoppingBgm = false;
     }
 
     public static void PauseBGM() => _bgmDevice?.Pause();
@@ -95,15 +119,27 @@ public static class AudioManager
 
     private static void OnBGMStopped(object? sender, StoppedEventArgs e)
     {
+        // 如果是故意停止（切换 BGM / StopBGM），不循环
+        if (_isStoppingBgm) return;
+
         // 循环播放
         if (_bgmStream != null && _bgmDevice != null)
         {
-            _bgmStream.Position = 0;
-            _bgmDevice.Play();
+            try
+            {
+                _bgmStream.Position = 0;
+                _bgmDevice.Play();
+            }
+            catch (ObjectDisposedException)
+            {
+                // 设备已被释放，忽略
+            }
         }
     }
 
-    // ── SFX ──
+    #endregion
+
+    #region SFX
 
     public static void PlaySFX(string resourcePath)
     {
@@ -122,17 +158,19 @@ public static class AudioManager
         }
     }
 
-    // ── Voice ──
+    #endregion
+
+    #region Voice
 
     public static void PlayVoice(string resourcePath)
     {
         StopVoice();
         try
         {
-            var stream = CreateReader(resourcePath);
+            _voiceStream = CreateReader(resourcePath);
             _voiceDevice = new WaveOutEvent();
             _voiceDevice.Volume = EffectiveVoiceVolume;
-            _voiceDevice.Init(stream);
+            _voiceDevice.Init(_voiceStream);
             _voiceDevice.PlaybackStopped += OnVoiceStopped;
             _voiceDevice.Play();
             IsVoicePlaying = true;
@@ -146,21 +184,32 @@ public static class AudioManager
 
     public static void StopVoice()
     {
+        _isStoppingVoice = true;
         _voiceDevice?.Stop();
         _voiceDevice?.Dispose();
+        _voiceStream?.Dispose();
         _voiceDevice = null;
+        _voiceStream = null;
         IsVoicePlaying = false;
+        _isStoppingVoice = false;
     }
 
     private static void OnVoiceStopped(object? sender, StoppedEventArgs e)
     {
+        // 如果是故意停止（切换 Voice / StopVoice），不处理
+        if (_isStoppingVoice) return;
+
         IsVoicePlaying = false;
         _voiceDevice?.Dispose();
+        _voiceStream?.Dispose();
         _voiceDevice = null;
+        _voiceStream = null;
         VoiceFinished?.Invoke();
     }
 
-    // ── 全局 ──
+    #endregion
+
+    #region 全局
 
     public static void StopAll()
     {
@@ -185,7 +234,7 @@ public static class AudioManager
 
     private static WaveStream CreateReader(string path)
     {
-        // 直接从文件系统加载（NAudio 原生支持文件路径，比嵌入资源+temp 快得多）
+        // 直接从文件系统加载
         var fullPath = AssetDatabase.GetFullPath(path);
         if (fullPath == null || !File.Exists(fullPath))
             throw new FileNotFoundException($"Audio asset not found: '{path}'");
@@ -200,4 +249,5 @@ public static class AudioManager
             _ => throw new NotSupportedException($"Audio format '{ext}' is not supported.")
         };
     }
+    #endregion
 }

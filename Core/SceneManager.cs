@@ -1,8 +1,6 @@
 namespace NanoUint;
 
-/// <summary>
-/// 场景管理器。类似 UnityEngine.SceneManagement.SceneManager。
-/// </summary>
+/// <summary>场景管理器。</summary>
 public static class SceneManager
 {
     private static Scene? _activeScene;

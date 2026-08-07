@@ -1,11 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 将方法标记为可从 .vns 脚本调用的脚本命令。
-/// 方法应具有签名：void MethodName(ScriptCommandContext context)。
-/// 同时支持静态方法和实例方法。
-/// 静态方法自动发现；实例方法需要将所属对象传递给 ScriptCommandScanner.ScanAndRegister。
-/// </summary>
+/// <summary>将方法标记为可从 .vns 脚本调用的脚本命令。</summary>
 /// <example>
 /// [RegistryInScript("open_message")]
 /// public static void OpenMessage(ScriptCommandContext ctx) { ... }

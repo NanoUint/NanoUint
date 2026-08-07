@@ -35,10 +35,7 @@ public class Token
     public override string ToString() => $"[{Type}] '{Value}' at {Line}:{Column}";
 }
 
-/// <summary>
-/// .vns 脚本文件的词法分析器/分词器。
-/// 将原始文本转换为 Token 流。
-/// </summary>
+/// <summary>.vns 脚本文件的词法分析器。将原始文本转换为 Token 流。</summary>
 public class VnsLexer
 {
     private readonly string _source;

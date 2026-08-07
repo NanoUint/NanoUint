@@ -2,9 +2,7 @@ using System.Globalization;
 
 namespace NanoUint.Drawing;
 
-/// <summary>
-/// 二维向量。WPF 无关的纯数学类型，类似 Unity 的 Vector2。
-/// </summary>
+/// <summary>二维向量。WPF 无关的纯数学类型。</summary>
 public readonly struct Vector2 : IEquatable<Vector2>
 {
     public float X { get; }

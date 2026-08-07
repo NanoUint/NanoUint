@@ -1,22 +1,9 @@
+using NanoUint.Diagnostics;
 using NanoUint.Drawing;
 
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 引擎内置脚本命令。提供背景、立绘、音频、视频操作，以及对白/旁白。
-/// 通过 [RegistryInScript] 自动注册到 ScriptEngine。
-/// 直接操作 Scene 中对应名称的 GameObject，无 WPF 依赖。
-///
-/// .vns 用法:
-///   @bg("Resources.Backgrounds.BG01A.png")
-///   @sprite("Resources.Characters.kurisu_normal.png", pos: "center")
-///   @bgm("Resources.Audio.bgm03.ogg")
-///   @sfx("Resources.Audio.sgse001.ogg")
-///   @voice("Resources.Audio.voice_kurisu_01.ogg")
-///   @say("speaker", "text")          — 角色对白
-///   @narration("text")               — 旁白
-///   @movie("Resources.Movies.op.mp4")
-/// </summary>
+/// <summary>引擎内置脚本命令。提供背景、立绘、音频、视频操作，以及对白/旁白。</summary>
 public class EngineCommands
 {
     private static readonly string[] PositionNames = { "left", "center", "right", "offscreenleft", "offscreenright" };

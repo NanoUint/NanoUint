@@ -15,6 +15,13 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
+  <!-- 内嵌图片资源（ResourceManager 统一加载） -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*.png" />
+    <EmbeddedResource Include="Resources\**\*.jpg" />
+  </ItemGroup>
+
+  <!-- WPF 资源（XAML 样式/本地化） -->
   <ItemGroup>
     <Resource Include="Resources\Localization\*.xaml" />
     <Resource Include="Resources\Styles\*.xaml" />

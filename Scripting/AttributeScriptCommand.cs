@@ -2,10 +2,7 @@ using System.Reflection;
 
 namespace NanoUint.Scripting;
 
-/// <summary>
-/// 将 MethodInfo（使用 [RegistryInScript] 装饰）包装为 IScriptCommand。
-/// 支持签名：void M()、void M(ScriptCommandContext) 以及自动映射参数。
-/// </summary>
+/// <summary>将 [RegistryInScript] 装饰的 MethodInfo 包装为 IScriptCommand。</summary>
 public class AttributeScriptCommand : IScriptCommand
 {
     private readonly MethodInfo _method;

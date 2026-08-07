@@ -2,10 +2,7 @@ using System.Collections;
 
 namespace NanoUint;
 
-/// <summary>
-/// 带协程支持的组件基类。类似 UnityEngine.MonoBehaviour。
-/// 游戏逻辑脚本应继承此类。
-/// </summary>
+/// <summary>带协程支持的组件基类。游戏逻辑脚本应继承此类。</summary>
 public abstract class Behaviour : Component
 {
     private readonly List<Coroutine> _coroutines = new();
