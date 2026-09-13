@@ -26,6 +26,10 @@ public sealed class PhoneScreen : Behaviour
 
     public PhoneRenderConfig? Config { get; set; }
 
+    /// <summary>Canvas dimensions set by the renderer each frame for layout calculations.</summary>
+    public double RenderCanvasW { get; set; }
+    public double RenderCanvasH { get; set; }
+
     #endregion
 
     #region Incoming call
