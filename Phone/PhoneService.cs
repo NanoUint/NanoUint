@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace NanoUint;
 
-#region 手机数据模型（纯 C#）
+#region Phone Data Model (pure C#)
 
 public enum MessageDirection { Incoming, Outgoing }
 public enum CallType { Incoming, Outgoing, Missed }
@@ -66,7 +66,7 @@ public class PhoneSettings
     public float RingtoneVolume { get; set; } = 0.7f;
 }
 
-/// <summary>手机服务。纯逻辑、无 UI 依赖，游戏端用它搭建手机 UI。</summary>
+/// <summary>Provides phone messaging, calls and settings logic.</summary>
 public static class PhoneService
 {
     private static readonly ObservableCollection<PhoneConversation> _conversations = new();
@@ -82,7 +82,7 @@ public static class PhoneService
 
     public static event Action<PhoneNotification>? NotificationReceived;
 
-    #region 消息
+    #region Messages
 
     public static void ReceiveMessage(string sender, string text)
     {
@@ -116,7 +116,7 @@ public static class PhoneService
 
     #endregion
 
-    #region 通话
+    #region Calls
 
     public static CallEntry ReceiveCall(string caller)
     {
@@ -177,7 +177,7 @@ public static class PhoneService
 
     #endregion
 
-    #region 查询
+    #region Queries
 
     public static ObservableCollection<PhoneConversation> GetConversations() => _conversations;
     public static List<PhoneMessage> GetMessages(string contactName)
@@ -193,7 +193,7 @@ public static class PhoneService
 
     #endregion
 
-    #region 内部
+    #region Internal
 
     private static PhoneConversation GetOrCreateConversation(string contactName)
     {
@@ -208,7 +208,7 @@ public static class PhoneService
 
     #endregion
 
-    #region 持久化
+    #region Persistence
 
     private static readonly string _savePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),

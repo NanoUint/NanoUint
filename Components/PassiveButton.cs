@@ -2,45 +2,45 @@ using NanoUint.EventSystems;
 
 namespace NanoUint;
 
-/// <summary>使同 GameObject 上的视觉组件变为可按/可悬停交互。</summary>
+/// <summary>Makes the visual components on the same GameObject clickable and hoverable.</summary>
 public sealed class PassiveButton : Behaviour,
     IPointerEnterHandler, IPointerExitHandler,
     IPointerDownHandler, IPointerUpHandler,
     IPointerClickHandler
 {
-    /// <summary>鼠标是否正在悬停在此元素上。</summary>
+    /// <summary>Whether the mouse is currently hovering over this element.</summary>
     public bool IsHovered { get; private set; }
 
-    /// <summary>鼠标左键是否正在此元素上按下。</summary>
+    /// <summary>Whether the left mouse button is currently pressed on this element.</summary>
     public bool IsPressed { get; private set; }
 
-    #region UnityEvent 风格回调
+    #region UnityEvent-style callbacks
 
-    /// <summary>指针进入时触发。</summary>
+    /// <summary>Raised when the pointer enters.</summary>
     public event Action? OnEnter;
 
-    /// <summary>指针离开时触发。</summary>
+    /// <summary>Raised when the pointer exits.</summary>
     public event Action? OnExit;
 
-    /// <summary>指针按下时触发。</summary>
+    /// <summary>Raised when the pointer is pressed down.</summary>
     public event Action? OnDown;
 
-    /// <summary>指针抬起时触发。</summary>
+    /// <summary>Raised when the pointer is released.</summary>
     public event Action? OnUp;
 
-    /// <summary>完整点击（按下+抬起在同一元素）。</summary>
+    /// <summary>Full click (press and release on the same element).</summary>
     public event Action? OnClick;
 
     #endregion
 
     #region Hint
 
-    /// <summary>悬停时显示的提示文本。</summary>
+    /// <summary>Hint text shown on hover.</summary>
     public override string? HintText { get; set; }
 
     #endregion
 
-    #region IPointer*Handler 实现
+    #region IPointer*Handler implementation
 
     void IPointerEnterHandler.OnPointerEnter()
     {

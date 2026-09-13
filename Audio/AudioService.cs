@@ -6,7 +6,7 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Audio;
 
-/// <summary>管理 BGM、SFX 和语音的音频播放。</summary>
+/// <summary>Manages audio playback for BGM, SFX and voice.</summary>
 public class AudioService : IDisposable
 {
     private WaveOutEvent? _bgmOut;
@@ -26,10 +26,10 @@ public class AudioService : IDisposable
     private readonly string _assetBasePath;
     private bool _disposed;
 
-    /// <summary>语音播放完毕时触发</summary>
+    /// <summary>Raised when voice playback finishes.</summary>
     public event Action? VoiceFinished;
 
-    /// <summary>当前是否正在播放语音</summary>
+    /// <summary>Whether voice is currently playing.</summary>
     public bool IsVoicePlaying => _voiceOut?.PlaybackState == PlaybackState.Playing;
 
     public AudioService(string assetBasePath = "Assets/Audio")
@@ -37,7 +37,6 @@ public class AudioService : IDisposable
         _assetBasePath = assetBasePath;
     }
 
-    /// <summary>创建适合文件格式的 WaveStream</summary>
     private static WaveStream? CreateReader(string fullPath)
     {
         if (!File.Exists(fullPath)) return null;
@@ -49,7 +48,7 @@ public class AudioService : IDisposable
             {
                 ".ogg" => new VorbisWaveReader(fullPath),
                 ".mp3" or ".wav" or ".aiff" or ".aif" => new AudioFileReader(fullPath),
-                _ => new AudioFileReader(fullPath) // 尝试 MediaFoundation
+                _ => new AudioFileReader(fullPath) // Fall back to MediaFoundation for unknown formats.
             };
         }
         catch (Exception ex)
@@ -59,7 +58,7 @@ public class AudioService : IDisposable
         }
     }
 
-    #region 音量
+    #region Volume
 
     public void SetVolumes(double master, double bgm, double sfx, double voice)
     {
@@ -99,7 +98,6 @@ public class AudioService : IDisposable
             _bgmOut.Volume = (float)(_masterVolume * _bgmVolume);
             _bgmOut.PlaybackStopped += (_, _) =>
             {
-                // 循环播放
                 if (_bgmStream != null && _bgmOut != null && !_disposed)
                 {
                     try
@@ -206,7 +204,7 @@ public class AudioService : IDisposable
         }
     }
 
-    /// <summary>停止语音播放</summary>
+    /// <summary>Stops voice playback.</summary>
     public void StopVoice()
     {
         _voiceOut?.Stop();
@@ -218,7 +216,7 @@ public class AudioService : IDisposable
 
     #endregion
 
-    #region 停止全部
+    #region Stop All
 
     public void StopAll()
     {

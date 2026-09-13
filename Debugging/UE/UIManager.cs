@@ -8,10 +8,8 @@ using System.Windows.Media;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer UIManager 1:1 复刻：全局顶栏。</summary>
 internal sealed class UIManager
 {
-    /// <summary>顶栏 TimeScale 控件控制的全局时间缩放(引擎主循环读取)。</summary>
     public static float TimeScale { get; set; } = 1f;
 
     private const double TopBarWidth = 1020;
@@ -43,7 +41,7 @@ internal sealed class UIManager
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        #region UE 标题 (14px, 灰色斜体版本号)
+        #region UE title (14px, grey italic version)
         var title = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 75 };
         title.Inlines.Add(new Run("UE ")
         {
@@ -62,7 +60,7 @@ internal sealed class UIManager
 
         #endregion
 
-        #region tab 按钮区
+        #region Tab button area
         _tabArea = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -72,7 +70,7 @@ internal sealed class UIManager
 
         #endregion
 
-        #region TimeScale 控件
+        #region TimeScale widget
         layout.Children.Add(BuildTimeScaleWidget());
 
         #endregion
@@ -82,7 +80,7 @@ internal sealed class UIManager
 
         #endregion
 
-        #region 隐藏按钮 (红色系, 显示热键名)
+        #region Hide button (red, shows hotkey)
         var hideBtn = UEFactory.ButtonAuto("Hide [F3]", 25, UEPalette.TopBarCloseNormal, 12);
         hideBtn.Margin = new Thickness(8, 0, 0, 0);
         hideBtn.Click += (_, _) => ToggleAll();
@@ -100,9 +98,8 @@ internal sealed class UIManager
         #endregion
     }
 
-    #region 公开 API
+    #region Public API
 
-    /// <summary>注册一个面板的顶栏 tab 按钮。</summary>
     public void AddPanelTab(UEPanel panel, string label)
     {
         var btn = UEFactory.ButtonAuto(label, 25, UEPalette.ButtonDisabled, 12);
@@ -120,7 +117,6 @@ internal sealed class UIManager
         UpdateTabStates();
     }
 
-    /// <summary>按面板激活态刷新 tab 按钮颜色。</summary>
     public void UpdateTabStates()
     {
         foreach (var (panel, btn) in _tabs)
@@ -132,7 +128,6 @@ internal sealed class UIManager
         }
     }
 
-    /// <summary>切换整个 UE UI(顶栏 + 全部面板)的显示/隐藏。</summary>
     public void ToggleAll()
     {
         _allVisible = !_allVisible;
@@ -145,7 +140,6 @@ internal sealed class UIManager
         UpdateTabStates();
     }
 
-    /// <summary>窗口尺寸变化时重新应用锚点。</summary>
     public void OnCanvasResized()
     {
         foreach (var (panel, _) in _tabs)
@@ -154,7 +148,7 @@ internal sealed class UIManager
 
     #endregion
 
-    #region 内部
+    #region Internals
 
     private double ComputeWidth()
     {

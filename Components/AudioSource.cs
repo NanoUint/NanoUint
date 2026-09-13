@@ -1,24 +1,24 @@
 namespace NanoUint;
 
-/// <summary>音频源组件。挂载到 GameObject 上以播放 BGM/SFX/语音。</summary>
+/// <summary>Plays BGM, SFX and voice audio.</summary>
 public sealed class AudioSource : Component
 {
     private AudioClip? _clip;
 
-    /// <summary>要播放的音频资源。</summary>
+    /// <summary>Audio clip to play.</summary>
     public AudioClip? Clip
     {
         get => _clip;
         set { _clip = value; }
     }
 
-    /// <summary>是否循环播放（BGM 用）。</summary>
+    /// <summary>Whether to loop playback (used for BGM).</summary>
     public bool IsLooping { get; set; }
 
-    /// <summary>音量（0~1）。</summary>
+    /// <summary>Volume (0-1).</summary>
     public float Volume { get; set; } = 1f;
 
-    /// <summary>开始播放。</summary>
+    /// <summary>Starts playback.</summary>
     public void Play()
     {
         if (_clip == null)
@@ -32,13 +32,13 @@ public sealed class AudioSource : Component
             AudioManager.PlaySFX(_clip.Path);
     }
 
-    /// <summary>停止播放。</summary>
+    /// <summary>Stops playback.</summary>
     public void Stop()
     {
         AudioManager.StopBGM();
     }
 
-    /// <summary>暂停。</summary>
+    /// <summary>Pauses playback.</summary>
     public void Pause()
     {
         AudioManager.PauseBGM();

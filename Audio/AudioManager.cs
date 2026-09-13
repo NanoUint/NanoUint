@@ -4,11 +4,10 @@ using NAudio.Vorbis;
 
 namespace NanoUint;
 
-/// <summary>音频管理器。引擎内置的静态 API，管理 BGM/SFX/Voice 播放和音量。</summary>
+/// <summary>Static API for BGM, SFX and voice playback and volume.</summary>
 public static class AudioManager
 {
     private static WaveOutEvent? _bgmDevice;
-    private static WaveOutEvent? _sfxDevice;
     private static WaveOutEvent? _voiceDevice;
 
     private static WaveStream? _bgmStream;
@@ -22,7 +21,7 @@ public static class AudioManager
     private static float _sfxVolume = 1f;
     private static float _voiceVolume = 1f;
 
-    #region 音量
+    #region Volume
 
     public static float MasterVolume
     {
@@ -42,7 +41,7 @@ public static class AudioManager
     public static float VoiceVolume
     {
         get => _voiceVolume;
-        set { _voiceVolume = Math.Clamp(value, 0f, 1f); }
+        set { _voiceVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
     }
 
     private static float EffectiveBGMVolume => _masterVolume * _bgmVolume;
@@ -51,16 +50,16 @@ public static class AudioManager
 
     #endregion
 
-    #region 事件
+    #region Events
 
     public static event Action? VoiceFinished;
     public static bool IsVoicePlaying { get; private set; }
 
-    /// <summary>当前正在播放的语音总时长（秒）。语音未播放时返回 0。</summary>
+    /// <summary>Total duration in seconds of the currently playing voice; 0 when no voice is playing.</summary>
     public static double VoiceDuration =>
         _voiceStream?.TotalTime.TotalSeconds ?? 0.0;
 
-    /// <summary>预先探测语音文件的时长（秒）。独立打开文件读取 TotalTime，不受播放状态影响。</summary>
+    /// <summary>Probes a voice file's duration in seconds by opening it independently of playback state.</summary>
     public static double ProbeVoiceDuration(string resourcePath)
     {
         try
@@ -68,8 +67,9 @@ public static class AudioManager
             using var stream = CreateReader(resourcePath);
             return stream.TotalTime.TotalSeconds;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.LogWarning($"Failed to probe voice duration '{resourcePath}': {ex.Message}");
             return 0.0;
         }
     }
@@ -85,19 +85,27 @@ public static class AudioManager
 
         StopBGM();
 
+        WaveStream? stream = null;
+        WaveOutEvent? device = null;
         try
         {
-            _bgmStream = CreateReader(resourcePath);
-            _bgmDevice = new WaveOutEvent();
-            _bgmDevice.PlaybackStopped += OnBGMStopped;
-            _bgmDevice.Init(_bgmStream);
-            _bgmDevice.Volume = EffectiveBGMVolume;
-            _bgmDevice.Play();
+            stream = CreateReader(resourcePath);
+            device = new WaveOutEvent();
+            device.PlaybackStopped += OnBGMStopped;
+            device.Init(stream);
+            device.Volume = EffectiveBGMVolume;
+            device.Play();
+
+            // Commit state only after playback succeeds, so a failed start leaves no half-initialized device/stream.
+            _bgmStream = stream;
+            _bgmDevice = device;
             _currentBgmPath = resourcePath;
             Debug.Log($"BGM playing: {resourcePath}");
         }
         catch (Exception ex)
         {
+            device?.Dispose();
+            stream?.Dispose();
             Debug.LogError($"Failed to play BGM '{resourcePath}': {ex.Message}");
         }
     }
@@ -119,10 +127,9 @@ public static class AudioManager
 
     private static void OnBGMStopped(object? sender, StoppedEventArgs e)
     {
-        // 如果是故意停止（切换 BGM / StopBGM），不循环
+        // An intentional stop (BGM switch / StopBGM) must not loop.
         if (_isStoppingBgm) return;
 
-        // 循环播放
         if (_bgmStream != null && _bgmDevice != null)
         {
             try
@@ -132,7 +139,7 @@ public static class AudioManager
             }
             catch (ObjectDisposedException)
             {
-                // 设备已被释放，忽略
+                // The device was already disposed, so nothing to recover here.
             }
         }
     }
@@ -143,10 +150,12 @@ public static class AudioManager
 
     public static void PlaySFX(string resourcePath)
     {
+        WaveStream? stream = null;
+        WaveOutEvent? device = null;
         try
         {
-            var stream = CreateReader(resourcePath);
-            var device = new WaveOutEvent();
+            stream = CreateReader(resourcePath);
+            device = new WaveOutEvent();
             device.Volume = EffectiveSFXVolume;
             device.Init(stream);
             device.Play();
@@ -154,6 +163,8 @@ public static class AudioManager
         }
         catch (Exception ex)
         {
+            device?.Dispose();
+            stream?.Dispose();
             Debug.LogError($"Failed to play SFX '{resourcePath}': {ex.Message}");
         }
     }
@@ -165,19 +176,28 @@ public static class AudioManager
     public static void PlayVoice(string resourcePath)
     {
         StopVoice();
+
+        WaveStream? stream = null;
+        WaveOutEvent? device = null;
         try
         {
-            _voiceStream = CreateReader(resourcePath);
-            _voiceDevice = new WaveOutEvent();
-            _voiceDevice.Volume = EffectiveVoiceVolume;
-            _voiceDevice.Init(_voiceStream);
-            _voiceDevice.PlaybackStopped += OnVoiceStopped;
-            _voiceDevice.Play();
+            stream = CreateReader(resourcePath);
+            device = new WaveOutEvent();
+            device.Volume = EffectiveVoiceVolume;
+            device.Init(stream);
+            device.PlaybackStopped += OnVoiceStopped;
+            device.Play();
+
+            // Commit state only after playback succeeds, so a failed start leaves no half-initialized device/stream.
+            _voiceStream = stream;
+            _voiceDevice = device;
             IsVoicePlaying = true;
             Debug.Log($"Voice playing: {resourcePath}");
         }
         catch (Exception ex)
         {
+            device?.Dispose();
+            stream?.Dispose();
             Debug.LogError($"Failed to play voice '{resourcePath}': {ex.Message}");
         }
     }
@@ -196,7 +216,7 @@ public static class AudioManager
 
     private static void OnVoiceStopped(object? sender, StoppedEventArgs e)
     {
-        // 如果是故意停止（切换 Voice / StopVoice），不处理
+        // An intentional stop (Voice switch / StopVoice) must be ignored here.
         if (_isStoppingVoice) return;
 
         IsVoicePlaying = false;
@@ -209,7 +229,7 @@ public static class AudioManager
 
     #endregion
 
-    #region 全局
+    #region Global
 
     public static void StopAll()
     {
@@ -226,15 +246,12 @@ public static class AudioManager
     {
         if (_bgmDevice != null)
             _bgmDevice.Volume = EffectiveBGMVolume;
-        if (_sfxDevice != null)
-            _sfxDevice.Volume = EffectiveSFXVolume;
         if (_voiceDevice != null)
             _voiceDevice.Volume = EffectiveVoiceVolume;
     }
 
     private static WaveStream CreateReader(string path)
     {
-        // 直接从文件系统加载
         var fullPath = AssetDatabase.GetFullPath(path);
         if (fullPath == null || !File.Exists(fullPath))
             throw new FileNotFoundException($"Audio asset not found: '{path}'");

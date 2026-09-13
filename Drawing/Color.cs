@@ -1,6 +1,6 @@
 namespace NanoUint.Drawing;
 
-/// <summary>纯 C# 颜色结构，无 WPF 依赖。</summary>
+/// <summary>Pure C# color struct with no WPF dependency.</summary>
 public struct Color : IEquatable<Color>
 {
     public byte R, G, B, A;

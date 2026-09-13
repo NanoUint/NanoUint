@@ -8,7 +8,6 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer ReflectionInspector 复刻（[R] 反射 tab）。</summary>
 internal sealed class ReflectionInspector
 {
     private enum MemberScope { All, Instance, Static }
@@ -37,7 +36,7 @@ internal sealed class ReflectionInspector
     {
         var root = new StackPanel { Background = new SolidColorBrush(UEPalette.InspectorRoot) };
 
-        #region TopRow: 类型标题 17px + Copy (黄字)
+        #region TopRow: type title 17px + Copy (yellow)
         var top = new Grid
         {
             Background = new SolidColorBrush(UEPalette.InspectorTopRow),
@@ -121,7 +120,7 @@ internal sealed class ReflectionInspector
 
         #endregion
 
-        #region SecondRow: Scope + 成员类型 toggle
+        #region SecondRow: Scope + member type toggles
         var secondRow = new Grid
         {
             Background = new SolidColorBrush(UEPalette.InspectorTopRow),
@@ -166,7 +165,7 @@ internal sealed class ReflectionInspector
 
         #endregion
 
-        #region 成员列表
+        #region Member list
         _list = new StackPanel { Background = new SolidColorBrush(UEPalette.InspectorScroll) };
         var scroller = new ScrollViewer
         {
@@ -180,7 +179,6 @@ internal sealed class ReflectionInspector
 
         RefreshMembers();
 
-        // Auto-update: 每 0.5s 刷新显示值
         _autoTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromMilliseconds(500),
@@ -195,7 +193,7 @@ internal sealed class ReflectionInspector
         #endregion
     }
 
-    #region 成员收集与过滤
+    #region Member collection and filtering
 
     private static bool IsStatic(MemberInfo m) => m switch
     {
@@ -212,14 +210,13 @@ internal sealed class ReflectionInspector
         var list = new List<MemberInfo>();
         list.AddRange(_type.GetFields(flags));
         list.AddRange(_type.GetProperties(flags));
-        list.AddRange(_type.GetMethods(flags).Where(m => !m.IsSpecialName)); // 排除属性访问器
+        list.AddRange(_type.GetMethods(flags).Where(m => !m.IsSpecialName)); // Exclude property accessors
         list.AddRange(_type.GetConstructors(flags));
         return list;
     }
 
     private bool Matches(MemberInfo m)
     {
-        // 类型开关
         switch (m)
         {
             case FieldInfo when !_showField:
@@ -229,17 +226,14 @@ internal sealed class ReflectionInspector
                 return false;
         }
 
-        // Scope
         var isStatic = IsStatic(m);
         if (_scope == MemberScope.Instance && isStatic) return false;
         if (_scope == MemberScope.Static && !isStatic) return false;
 
-        // Filter
         if (!string.IsNullOrEmpty(_filter) &&
             !m.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        // 跳过索引器
         if (m is PropertyInfo pi && pi.GetIndexParameters().Length > 0) return false;
 
         return true;
@@ -249,7 +243,6 @@ internal sealed class ReflectionInspector
     {
         if (_list == null) return;
 
-        // Scope 按钮选中态 (#334533 / #3D3D3D)
         foreach (var (scope, btn) in _scopeButtons)
         {
             btn.Background = new SolidColorBrush(
@@ -271,7 +264,7 @@ internal sealed class ReflectionInspector
 
     #endregion
 
-    #region 行构建
+    #region Row building
 
     private UIElement BuildRow(MemberInfo member)
     {
@@ -304,7 +297,6 @@ internal sealed class ReflectionInspector
         return row;
     }
 
-    /// <summary>方法/构造函数行(无值控件, 仅签名)。</summary>
     private FrameworkElement? BuildValueControl(MemberInfo member)
     {
         Type type;
@@ -326,7 +318,7 @@ internal sealed class ReflectionInspector
         }
         else
         {
-            return null; // 方法/构造函数: 仅签名
+            return null;
         }
 
         return BuildValueEditor(type, get, set);
@@ -336,9 +328,8 @@ internal sealed class ReflectionInspector
     {
         object? value;
         try { value = get(); }
-        catch { value = null; }
+        catch (Exception ex) { Logger.Warning("UE", $"Value read failed: {ex.Message}"); value = null; }
 
-        // bool
         if (type == typeof(bool))
         {
             var check = UEFactory.Check(value is true,
@@ -349,7 +340,6 @@ internal sealed class ReflectionInspector
             return check;
         }
 
-        // enum
         if (type.IsEnum)
         {
             var names = Enum.GetNames(type);
@@ -369,7 +359,6 @@ internal sealed class ReflectionInspector
             return dropdown;
         }
 
-        // 数值 / 字符串 / char
         if (IsPrimitiveEditable(type))
         {
             var display = value == null ? "(null)" : Convert.ToString(value, CultureInfo.InvariantCulture) ?? "";
@@ -396,7 +385,6 @@ internal sealed class ReflectionInspector
             return box;
         }
 
-        // 其他复杂类型: 只读摘要
         var summary = value == null ? "(null)" : Truncate(value.ToString() ?? "", 60);
         var label = UEFactory.Label(summary, 11, UEPalette.TextInactive);
         label.HorizontalAlignment = HorizontalAlignment.Right;
@@ -425,9 +413,9 @@ internal sealed class ReflectionInspector
             if (t == typeof(string)) { value = text; return true; }
             if (t == typeof(char) && text.Length == 1) { value = text[0]; return true; }
         }
-        catch
+        catch (Exception ex)
         {
-            // 解析失败
+            Logger.Warning("UE", $"Parse failed: '{text}' → {t.Name}: {ex.Message}");
         }
         return false;
     }

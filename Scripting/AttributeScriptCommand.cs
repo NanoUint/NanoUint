@@ -1,18 +1,19 @@
 using System.Reflection;
+using NanoUint.Diagnostics;
 
 namespace NanoUint.Scripting;
 
-/// <summary>将 [RegistryInScript] 装饰的 MethodInfo 包装为 IScriptCommand。</summary>
+/// <summary>Wraps a [RegistryInScript]-decorated MethodInfo as an IScriptCommand.</summary>
 public class AttributeScriptCommand : IScriptCommand
 {
     private readonly MethodInfo _method;
-    private readonly object? _instance; // 静态方法为 null
+    private readonly object? _instance; // null for static methods
 
     public string Name { get; }
 
-    /// <param name="commandName">.vns 脚本中使用的命令名称</param>
-    /// <param name="method">要调用的方法</param>
-    /// <param name="instance">非静态方法的实例，静态方法为 null</param>
+    /// <param name="commandName">Command name used in .vns scripts</param>
+    /// <param name="method">Method to invoke</param>
+    /// <param name="instance">Instance for non-static methods; null for static methods</param>
     public AttributeScriptCommand(string commandName, MethodInfo method, object? instance = null)
     {
         Name = commandName;
@@ -26,19 +27,18 @@ public class AttributeScriptCommand : IScriptCommand
 
         if (parameters.Length == 0)
         {
-            // void Foo()
             _method.Invoke(_instance, null);
             return;
         }
 
         if (parameters.Length == 1 && parameters[0].ParameterType == typeof(ScriptCommandContext))
         {
-            // void Foo(ScriptCommandContext ctx) — 主要签名
+            // void Foo(ScriptCommandContext ctx) — primary signature
             _method.Invoke(_instance, new object[] { context });
             return;
         }
 
-        // 从 context 自动映射：先按位置参数，再按命名参数
+        // Auto-map from context: positional arguments first, then named
         var args = new object?[parameters.Length];
         for (int i = 0; i < parameters.Length; i++)
         {
@@ -74,8 +74,9 @@ public class AttributeScriptCommand : IScriptCommand
             if (target == typeof(string)) return value.ToString();
             return Convert.ChangeType(value, target);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.Warning("Scripting", $"Argument convert failed: '{value}' → {target.Name}: {ex.Message}");
             return GetDefault(target);
         }
     }

@@ -2,7 +2,7 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>线条渲染器。在 2D 空间中绘制折线（坐标归一化 0~1）。</summary>
+/// <summary>Line renderer that draws a polyline in 2D space (coordinates normalized 0-1).</summary>
 public sealed class LineRenderer : Component
 {
     private readonly List<Vector2> _positions = new();
@@ -10,37 +10,37 @@ public sealed class LineRenderer : Component
     private float _width = 2f;
     private bool _loop;
 
-    /// <summary>顶点数量。</summary>
+    /// <summary>Number of vertices.</summary>
     public int PositionCount => _positions.Count;
 
-    /// <summary>线条颜色。</summary>
+    /// <summary>Line color.</summary>
     public Color Color
     {
         get => _color;
         set { if (!_color.Equals(value)) { _color = value; MarkDirty(); } }
     }
 
-    /// <summary>线条宽度（WPF 像素）。</summary>
+    /// <summary>Line width (WPF pixels).</summary>
     public float Width
     {
         get => _width;
         set { if (!_width.Equals(value)) { _width = value; MarkDirty(); } }
     }
 
-    /// <summary>是否闭合首尾形成环（true 时渲染为 Polygon）。</summary>
+    /// <summary>Whether the ends are joined into a loop.</summary>
     public bool Loop
     {
         get => _loop;
         set { if (_loop != value) { _loop = value; MarkDirty(); } }
     }
 
-    /// <summary>所有顶点（只读）。</summary>
+    /// <summary>All vertices (read-only).</summary>
     public IReadOnlyList<Vector2> Positions => _positions;
 
-    /// <summary>获取指定索引的顶点。</summary>
+    /// <summary>Gets the vertex at the given index.</summary>
     public Vector2 GetPosition(int index) => _positions[index];
 
-    /// <summary>设置指定索引的顶点位置。</summary>
+    /// <summary>Sets the position of the vertex at the given index.</summary>
     public void SetPosition(int index, Vector2 position)
     {
         const int maxPoints = 16384;
@@ -56,7 +56,7 @@ public sealed class LineRenderer : Component
         }
     }
 
-    /// <summary>设置所有顶点（替换现有）。</summary>
+    /// <summary>Sets all vertices, replacing the existing ones.</summary>
     public void SetPositions(IEnumerable<Vector2> positions)
     {
         _positions.Clear();
@@ -64,14 +64,14 @@ public sealed class LineRenderer : Component
         MarkDirty();
     }
 
-    /// <summary>追加一个顶点。</summary>
+    /// <summary>Appends a vertex.</summary>
     public void AddPosition(Vector2 position)
     {
         _positions.Add(position);
         MarkDirty();
     }
 
-    /// <summary>清空所有顶点。</summary>
+    /// <summary>Clears all vertices.</summary>
     public void Clear()
     {
         if (_positions.Count > 0)

@@ -1,6 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>将 .vns 文档（AST）编译为扁平的 ScriptStep 序列（解析别名、if/choice 和跳转目标）。</summary>
+/// <summary>Compiles a .vns document into a flat ScriptStep sequence.</summary>
 public class VnsCompiler
 {
     private readonly ScriptCommandRegistry _registry;
@@ -12,12 +12,11 @@ public class VnsCompiler
         _aliases = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>将文档编译为可执行的脚本步骤</summary>
+    /// <summary>Compiles the document into executable script steps</summary>
     public CompiledScript Compile(VnsDocument document)
     {
         _aliases.Clear();
 
-        // 处理指令：注册别名
         foreach (var dir in document.Directives)
         {
             if (dir is AliasDirective alias)
@@ -66,7 +65,6 @@ public class VnsCompiler
 
     private void CompileCommand(CommandBlock cmd, List<ScriptStep> output)
     {
-        // 解析别名
         var resolvedName = _aliases.TryGetValue(cmd.CommandName, out var target) ? target : cmd.CommandName;
 
         var step = new ScriptStep
@@ -77,19 +75,17 @@ public class VnsCompiler
             Parameters = new Dictionary<string, object?>()
         };
 
-        // 添加位置参数
         for (int i = 0; i < cmd.Arguments.Count; i++)
         {
             step.Parameters[$"_arg{i}"] = ConvertValue(cmd.Arguments[i].Value);
         }
 
-        // 添加命名参数
         foreach (var (key, val) in cmd.NamedArguments)
         {
             step.Parameters[key] = ConvertValue(val);
         }
 
-        // 处理跳转：第一个位置参数是目标标签
+        // Jump: the first positional argument is the target label
         if (cmd.CommandName == "jump" && cmd.Arguments.Count > 0 && cmd.Arguments[0].Value is VnsLabelRef lr)
         {
             step.Parameters["target"] = lr.LabelName;
@@ -159,14 +155,14 @@ public class VnsCompiler
     }
 }
 
-/// <summary>编译 .vns 脚本的结果</summary>
+/// <summary>Result of compiling a .vns script</summary>
 public class CompiledScript
 {
     public List<ScriptStep> Steps { get; init; } = new();
     public Dictionary<string, string> Aliases { get; init; } = new();
     public string FilePath { get; set; } = "";
 
-    /// <summary>获取此脚本中定义的所有标签</summary>
+    /// <summary>Gets all labels defined in this script</summary>
     public IEnumerable<string> Labels =>
         Steps.Where(s => s.Type == ScriptStepType.Label && s.Label != null)
              .Select(s => s.Label!);

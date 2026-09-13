@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace NanoUint;
 
-/// <summary>设置管理器。统一管理所有游戏设置的持久化。</summary>
+/// <summary>Persists and exposes all game settings.</summary>
 public static class SettingsManager
 {
     private static SettingsData _data = new();
@@ -11,7 +11,7 @@ public static class SettingsManager
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         "NanoUint", "settings.json");
 
-    #region 音频
+    #region Audio
     public static float MasterVolume
     {
         get => _data.MasterVolume;
@@ -35,7 +35,7 @@ public static class SettingsManager
 
     #endregion
 
-    #region 画面
+    #region Display
     public static int ResolutionWidth
     {
         get => _data.ResolutionWidth;
@@ -64,7 +64,7 @@ public static class SettingsManager
 
     #endregion
 
-    #region 游戏体验
+    #region Gameplay
     public static float TextSpeed
     {
         get => _data.TextSpeed;
@@ -83,7 +83,7 @@ public static class SettingsManager
 
     #endregion
 
-    #region 语言
+    #region Language
     public static string Language
     {
         get => _data.Language;
@@ -92,8 +92,8 @@ public static class SettingsManager
 
     #endregion
 
-    #region 跳过模式
-    /// <summary>Skip 模式：false=仅跳过已读，true=跳过全部。</summary>
+    #region Skip Mode
+    /// <summary>Skip mode: false = skip read text only, true = skip everything.</summary>
     public static bool SkipAll
     {
         get => _data.SkipAll;
@@ -102,21 +102,18 @@ public static class SettingsManager
 
     #endregion
 
-    #region 事件
+    #region Events
     public static event Action<string>? OnChanged;
 
     private static void SetProperty<T>(string name, T value, Action<T> setter)
     {
         setter(value);
         OnChanged?.Invoke(name);
-        _dirty = true;
     }
-
-    private static bool _dirty;
 
     #endregion
 
-    #region 持久化
+    #region Persistence
 
     public static void Save()
     {
@@ -125,18 +122,16 @@ public static class SettingsManager
             var dir = Path.GetDirectoryName(SavePath);
             if (dir != null) Directory.CreateDirectory(dir);
 
-            // 原子写入：先写 .tmp，再替换
+            // Atomic write: write .tmp first, then replace.
             var tmp = SavePath + ".tmp";
             var json = JsonConvert.SerializeObject(_data, Formatting.Indented);
             File.WriteAllText(tmp, json);
 
-            // .tmp → .bak → target
             var bak = SavePath + ".bak";
             if (File.Exists(bak)) File.Delete(bak);
             if (File.Exists(SavePath)) File.Move(SavePath, bak);
             File.Move(tmp, SavePath);
 
-            _dirty = false;
             Debug.Log("Settings saved.");
         }
         catch (Exception ex)

@@ -1,71 +1,73 @@
 # NanoUint
 
-基于 WPF 的微型视觉小说引擎（"A Nano Unity Game Engine for Visual Novels base on WPF"）。
-为《Steins;Gate X》同人项目自研：Unity 风格的对象/组件/协程模型 + WPF 渲染 + 脚本命令系统。
+A tiny WPF-based visual novel engine ("A Nano Unity Game Engine for Visual Novels based on WPF").
+Built for the *Steins;Gate X* fan project: a Unity-style object/component/coroutine model, WPF rendering, and a script command system.
 
-## 架构概览
+## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ 游戏项目（如 SteinsGateX）                                │
-│   ScreenBase 子类 · Chapter 协程 · 业务逻辑                │
-└───────────────┬─────────────────────────────────────────┘
-┌───────────────▼─────────────────────────────────────────┐
-│ NanoUint（本库）                                          │
-│  Core        Scene / GameObject / Component / Transform  │
-│              InputManager / CanvasScaler / SceneManager  │
-│  Components  SpriteRenderer / TextRenderer / 按钮 / 对话  │
-│              选项 / 背景 / 音频 / 特效 / 时间轴(Tweener)    │
-│  Rendering   WpfRenderer(增量渲染) / WpfEngineHost(主循环) │
-│              ScenePreviewHost(编辑器预览)                  │
-│  Coroutine   协程调度 + Yields 集合                        │
-│  Scripting   VNS 脚本解析/编译/执行 + ScriptCommandRegistry │
-│  AssetDatabase  资源加载(文件系统) + 缓存                   │
-│  Audio       NAudio 音频管理（BGM/SFX/语音）               │
-│  Animation   Ease 缓动函数                                │
-│  Localization  多语言                                      │
-│  Save        存档                                          │
-│  Debugging   DebugConsole / DevPanel / InspectorTab / UE  │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ Game project (e.g. SteinsGateX)                            │
+│   ScreenBase subclasses · Chapter coroutines · game logic  │
+└───────────────┬────────────────────────────────────────────┘
+┌───────────────▼────────────────────────────────────────────┐
+│ NanoUint (this library)                                    │
+│  Core        Scene / GameObject / Component / Transform    │
+│              InputManager / CanvasScaler / SceneManager    │
+│  Components  SpriteRenderer / TextRenderer / buttons /     │
+│              dialogue / choices / background / audio /     │
+│              effects / timeline (Tweener)                  │
+│  Rendering   WpfRenderer (incremental) /                   │
+│              WpfEngineHost (main loop) /                   │
+│              ScenePreviewHost (editor preview)             │
+│  Coroutine   Scheduler + Yields collection                 │
+│  Scripting   VNS parse/compile/execute + command registry  │
+│  AssetDatabase  Asset loading (filesystem) + cache         │
+│  Audio       NAudio wrapper (BGM/SFX/voice)                │
+│  Animation   Ease functions                                │
+│  Localization  Multi-language                              │
+│  Save        Save data                                     │
+│  Debugging   DebugConsole / DevPanel / Inspector / UE      │
+└────────────────────────────────────────────────────────────┘
 ```
 
-## 核心概念
+## Core Concepts
 
-### 场景与对象（Unity 风格）
+### Scenes and Objects (Unity-style)
 
 ```csharp
 var scene = new Scene("Main");
-var go = scene.AddObject("Logo");          // 自动触发 Awake
-go.Transform.X = 0.5f;                     // 归一化坐标：0=左/顶，1=右/底
+var go = scene.AddObject("Logo");          // triggers Awake automatically
+go.Transform.X = 0.5f;                     // normalized coords: 0=left/top, 1=right/bottom
 go.Transform.Y = 0.5f;
-go.Transform.SortingOrder = 10;            // Z 深度，越大越靠前
+go.Transform.SortingOrder = 10;            // Z depth, higher draws in front
 go.Transform.Opacity = 1f;
-go.Transform.SetParent(parent.Transform);  // 父子层级（世界坐标 = 累加父级）
+go.Transform.SetParent(parent.Transform);  // hierarchy (world coords accumulate from parents)
 ```
 
-- `GameObject`：容器，本身无行为，通过 `AddComponent<T>()` 组合
-- `Component`：行为单元（Awake/Start/Update/OnDestroy）；`Behaviour` 支持协程
-- `Transform`：每个对象必备，X/Y 为 0~1 归一化坐标（相对父对象），SortingOrder 决定渲染层级
+- `GameObject`: a container with no behavior of its own; compose it with `AddComponent<T>()`
+- `Component`: a behavior unit (Awake/Start/Update/OnDestroy); `Behaviour` adds coroutine support
+- `Transform`: required on every object; X/Y are 0-1 normalized coords relative to the parent, SortingOrder decides draw order
 
-### 组件清单（Components/）
+### Component List (Components/)
 
-| 组件 | 用途 |
+| Component | Purpose |
 |---|---|
-| `SpriteRenderer` | 图片显示（Sprite/Tint/口型动画 MouthClosed/Half/Open） |
-| `TextRenderer` | 纯文本（Content/FontSize/TextColor） |
-| `SpriteButton` / `PassiveButton` | 图片按钮 / 热区按钮（OnClick/OnEnter/OnExit），SpriteButton 自动挂 PassiveButton |
-| `BackgroundRenderer` | 全屏背景 + 双纹理交叉淡入（CrossfadeTo） |
-| `DialogueBox` | 对话（SpeakerName/Show/打字机 ProgressiveReveal/TextSpeed） |
-| `ChoiceGroup` | 选项组（Show/Inline/WaitForChoiceAsync） |
-| `AudioSource` | 音频（Clip/IsLooping/Volume/Play/Stop/Pause） |
-| `FlashOverlay` | 全屏闪色 |
-| `AdvanceIndicator` | 继续阅读指示器 |
-| `LineRenderer` | 线段（归一化坐标 SetPositions） |
-| `HintRenderer` | 提示文本 |
-| `Tweener` | 时间轴补间（配合 Animation/Ease） |
-| `BacklogView` / `PhoneScreen` / `Slider` / `VideoPlayer` | 日志/电话界面/滑条/视频 |
+| `SpriteRenderer` | Image display (Sprite/Tint/mouth animation MouthClosed/Half/Open) |
+| `TextRenderer` | Plain text (Content/FontSize/TextColor) |
+| `SpriteButton` / `PassiveButton` | Image button / hit-area button (OnClick/OnEnter/OnExit); SpriteButton attaches a PassiveButton automatically |
+| `BackgroundRenderer` | Full-screen background + two-texture crossfade (CrossfadeTo) |
+| `DialogueBox` | Dialogue (SpeakerName/Show/typewriter ProgressiveReveal/TextSpeed) |
+| `ChoiceGroup` | Choice group (Show/Inline/WaitForChoiceAsync) |
+| `AudioSource` | Audio (Clip/IsLooping/Volume/Play/Stop/Pause) |
+| `FlashOverlay` | Full-screen color flash |
+| `AdvanceIndicator` | "Continue reading" indicator |
+| `LineRenderer` | Line segments (normalized coords, SetPositions) |
+| `HintRenderer` | Hint text |
+| `Tweener` | Timeline tweening (works with Animation/Ease) |
+| `BacklogView` / `PhoneScreen` / `Slider` / `VideoPlayer` | Backlog / phone UI / slider / video |
 
-### 协程
+### Coroutines
 
 ```csharp
 StartCoroutine(MyRoutine());
@@ -77,41 +79,41 @@ IEnumerator MyRoutine()
 }
 ```
 
-### 脚本命令（Scripting/）
+### Script Commands (Scripting/)
 
 ```csharp
 ScriptEngine engine = ...;
 engine.Registry.Register(new MyCommand());   // IScriptCommand
-engine.Run("chapter1.vns");                  // VNS 脚本解析 → 编译 → 执行
+engine.Run("chapter1.vns");                  // VNS parse -> compile -> execute
 ```
 
-### 资源（AssetDatabase/）
+### Assets (AssetDatabase/)
 
 ```csharp
 AssetDatabase.AddSearchDirectory(@"C:\...\Resources");
-var sprite = AssetDatabase.Load<Sprite>("Characters/okabe.png", 100f); // ppu：像素/世界单位
+var sprite = AssetDatabase.Load<Sprite>("Characters/okabe.png", 100f); // ppu: pixels per world unit
 var audio  = AssetDatabase.Load<AudioClip>("BGM/theme.ogg");
 ```
 
-### 渲染与宿主（Rendering/）
+### Rendering and Hosts (Rendering/)
 
-- `WpfRenderer`：增量渲染（只同步脏组件），CanvasScaler 支持分辨率自适应
-- `WpfEngineHost`：游戏完整宿主（Window + 主循环 + 输入 + UE 调试面板），internal
-- `ScenePreviewHost`（public）：**编辑器/外部嵌入用**——把引擎渲染进任意 Canvas，
-  手动驱动帧循环，带 1920×1080 逻辑画布缩放：
+- `WpfRenderer`: incremental rendering (only dirty components are synced); CanvasScaler handles resolution adaptation
+- `WpfEngineHost`: the full game host (Window + main loop + input + UE debug panels), internal
+- `ScenePreviewHost` (public): **for editor/external embedding** — renders the engine into any Canvas,
+  with a manually driven frame loop and 1920x1080 logical canvas scaling:
 
 ```csharp
 var host = new ScenePreviewHost(canvas, 1920, 1080);
-// 往 host.Scene 添加 GameObject/组件（或由 NanoUintEditor.SceneRuntime 自动构建）
-host.StartScene();   // 触发 Start
-host.Start();        // 启动帧循环
+// Add GameObjects/components to host.Scene (or let NanoUintEditor.SceneRuntime build them)
+host.StartScene();   // fires Start
+host.Start();        // starts the frame loop
 // ...
-host.Stop();         // 关闭时停止
+host.Stop();         // stop on shutdown
 ```
 
-## 游戏接入（IGameBootstrapper）
+## Game Integration (IGameBootstrapper)
 
-实现 `IGameBootstrapper` 并在入口调用宿主：
+Implement `IGameBootstrapper` and start the host from your entry point:
 
 ```csharp
 public class MyGame : IGameBootstrapper
@@ -122,29 +124,29 @@ public class MyGame : IGameBootstrapper
         SceneManager.LoadScene(new Scene("Main"));
     }
 }
-// WpfEngineHost.Run 在 STA 线程启动（SteinsGateX/Program.cs 示例）
+// WpfEngineHost.Run starts on an STA thread (see SteinsGateX/Program.cs)
 ```
 
-## 目录索引
+## Directory Index
 
-| 目录 | 内容 |
+| Directory | Contents |
 |---|---|
-| Core/ | Scene、GameObject、Component、Transform、InputManager、CanvasScaler、SceneManager |
-| Components/ | 全部引擎组件（见上表） |
-| Rendering/ | WpfRenderer、WpfEngineHost、ScenePreviewHost、ColorConversion |
-| Coroutine/ | 协程调度器 + Yields 集合 |
-| Scripting/ | VNS 脚本语言（Lexer/Parser/Compiler/Engine）+ 命令注册表 |
-| AssetDatabase/ | 资源加载与缓存 |
-| Audio/ | NAudio 封装（BGM/SFX/语音） |
-| Animation/ | Ease 缓动函数 |
-| Localization/ | 本地化（LocalizationManager） |
-| Save/ | 存档 |
-| Debugging/ | 调试控制台、DevPanel、Inspector/SceneTree 标签、UnityExplorer 复刻（UE/） |
+| Core/ | Scene, GameObject, Component, Transform, InputManager, CanvasScaler, SceneManager |
+| Components/ | All engine components (see the table above) |
+| Rendering/ | WpfRenderer, WpfEngineHost, ScenePreviewHost, ColorConversion |
+| Coroutine/ | Coroutine scheduler + Yields collection |
+| Scripting/ | VNS scripting language (Lexer/Parser/Compiler/Engine) + command registry |
+| AssetDatabase/ | Asset loading and caching |
+| Audio/ | NAudio wrapper (BGM/SFX/voice) |
+| Animation/ | Ease functions |
+| Localization/ | Localization (LocalizationManager) |
+| Save/ | Save data |
+| Debugging/ | Debug console, DevPanel, Inspector/SceneTree tabs, UnityExplorer replica (UE/) |
 | Diagnostics/ | Logger |
-| Drawing/ | 纯 C# Color/Vector2 |
+| Drawing/ | Pure C# Color/Vector2 |
 
-## 配套项目
+## Companion Projects
 
-- `NanoUintEditor`：可视化场景编辑器（见 `../NanoUintEditor/README.md`），
-  支持「▶ 播放」经 `ScenePreviewHost` 内嵌实时预览、一键生成 `ScreenBase` C# 代码。
-- `SteinsGateX`：基于本引擎的游戏项目（Screen/ 目录存放各屏幕实现）。
+- `NanoUintEditor`: visual scene editor (see `../NanoUintEditor/README.md`); supports live embedded
+  preview via `ScenePreviewHost` and one-click generation of `ScreenBase` C# code.
+- `SteinsGateX`: the game built on this engine (screen implementations live in `Screen/`).

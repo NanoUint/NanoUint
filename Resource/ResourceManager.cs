@@ -6,41 +6,37 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>统一资源管理器。所有图片加载的唯一入口。</summary>
+/// <summary>Loads and caches images from embedded and filesystem resources.</summary>
 public static class ResourceManager
 {
-    /// <summary>逻辑路径（如 "System/Phone/Phone.png"）→ (Assembly, 内嵌资源名)。仅存内嵌资源映射。</summary>
     private static readonly Dictionary<string, (Assembly Assembly, string ResourceName)> _embeddedMap
         = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>BitmapImage 统一缓存（跨场景复用，ConcurrentDictionary 支持后台预加载）。</summary>
     private static readonly ConcurrentDictionary<string, BitmapImage> _bitmapCache
         = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>正在后台加载的 key，防重复提交。</summary>
     private static readonly ConcurrentDictionary<string, byte> _pendingLoads
         = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>文件系统 Resources 根目录。</summary>
     private static string? _resourcesRoot;
 
     private static bool _initialized;
 
-    #region 初始化
+    #region Initialization
 
-    /// <summary>扫描内嵌资源 + 探测文件系统 Resources 目录。</summary>
+    /// <summary>Scans embedded resources and detects the filesystem Resources directory.</summary>
     public static void Initialize()
     {
         if (_initialized) return;
         _initialized = true;
 
-        #region 1. 扫描 NanoUint 内嵌图片资源（Logo.jpg 等引擎图片）
+        #region 1. Scan NanoUint embedded image resources (engine images such as Logo.jpg)
         var nanoAsm = Assembly.GetExecutingAssembly();
         ScanEmbeddedResources(nanoAsm);
 
         #endregion
 
-        #region 2. 探测文件系统 Resources 目录
+        #region 2. Detect the filesystem Resources directory
         _resourcesRoot = FindResourcesRoot();
         if (_resourcesRoot != null)
             Logger.Info("Resource", $"Filesystem Resources root: '{_resourcesRoot}'");
@@ -52,7 +48,6 @@ public static class ResourceManager
         #endregion
     }
 
-    /// <summary>扫描程序集中的内嵌 .png/.jpg 资源。</summary>
     private static void ScanEmbeddedResources(Assembly asm)
     {
         var asmName = asm.GetName().Name;
@@ -81,7 +76,6 @@ public static class ResourceManager
         }
     }
 
-    /// <summary>探测文件系统 Resources 目录。</summary>
     private static string? FindResourcesRoot()
     {
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -89,7 +83,7 @@ public static class ResourceManager
         if (Directory.Exists(resourcesDir))
             return resourcesDir;
 
-        // 开发环境：向上搜索项目 Resources 目录
+        // Development environment: search upward for the project Resources directory.
         try
         {
             var dir = baseDir;
@@ -108,7 +102,6 @@ public static class ResourceManager
         return null;
     }
 
-    /// <summary>将点分隔的内嵌资源路径转为斜杠分隔的逻辑路径。</summary>
     private static string DottedToSlashPath(string dottedPath)
     {
         var lastDot = dottedPath.LastIndexOf('.');
@@ -120,36 +113,33 @@ public static class ResourceManager
 
     #endregion
 
-    #region 查询
+    #region Query
 
-    /// <summary>检查逻辑路径对应的图片资源是否存在（内嵌 + 文件系统）。</summary>
+    /// <summary>Checks whether an image resource exists for a logical path.</summary>
     public static bool Exists(string logicalPath)
     {
         if (!_initialized) Initialize();
 
-        // 1. 内嵌资源
         if (_embeddedMap.ContainsKey(logicalPath))
             return true;
 
-        // 2. 文件系统
         return ResolveFileSystemPath(logicalPath) is string fp && File.Exists(fp);
     }
 
-    /// <summary>列出所有可用的图片逻辑路径（内嵌 + 文件系统）。</summary>
+    /// <summary>Lists all available image logical paths.</summary>
     public static IReadOnlyCollection<string> GetAllImagePaths()
     {
         if (!_initialized) Initialize();
 
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // 内嵌资源
         foreach (var key in _embeddedMap.Keys)
         {
             if (key.Contains('/') || !key.Contains('.'))
                 paths.Add(key);
         }
 
-        // 文件系统：扫描 Resources 目录下所有 PNG/JPG
+        // Filesystem: scan every PNG/JPG under the Resources directory.
         if (_resourcesRoot != null && Directory.Exists(_resourcesRoot))
         {
             foreach (var file in Directory.EnumerateFiles(_resourcesRoot, "*.*", SearchOption.AllDirectories))
@@ -157,8 +147,8 @@ public static class ResourceManager
                 var ext = Path.GetExtension(file).ToLowerInvariant();
                 if (ext != ".png" && ext != ".jpg" && ext != ".jpeg") continue;
 
-                // 转为逻辑路径：{ResourcesRoot}\System\Phone\Phone.png → System/Phone/Phone.png
-                var relative = file.Substring(_resourcesRoot.Length + 1); // +1 for separator
+                // Convert to a logical path: {ResourcesRoot}\System\Phone\Phone.png → System/Phone/Phone.png
+                var relative = file.Substring(_resourcesRoot.Length + 1);
                 var logicalPath = relative.Replace('\\', '/');
                 paths.Add(logicalPath);
             }
@@ -169,9 +159,8 @@ public static class ResourceManager
 
     #endregion
 
-    #region 路径解析
+    #region Path Resolution
 
-    /// <summary>将逻辑路径解析为文件系统绝对路径。返回 null 表示该路径没有对应的文件系统资源。</summary>
     private static string? ResolveFileSystemPath(string logicalPath)
     {
         if (_resourcesRoot == null) return null;
@@ -181,25 +170,22 @@ public static class ResourceManager
 
     #endregion
 
-    #region 同步加载
+    #region Synchronous Loading
 
-    /// <summary>同步加载并缓存 BitmapImage。查找顺序：缓存 → 内嵌资源 → 文件系统。</summary>
+    /// <summary>Loads and caches a BitmapImage synchronously.</summary>
     public static BitmapImage? GetBitmap(string logicalPath)
     {
         if (!_initialized) Initialize();
 
-        // 1. 缓存命中
         if (_bitmapCache.TryGetValue(logicalPath, out var cached))
             return cached;
 
-        // 2. 内嵌资源
         if (TryLoadFromEmbedded(logicalPath) is { } embBmp)
         {
             _bitmapCache[logicalPath] = embBmp;
             return embBmp;
         }
 
-        // 3. 文件系统
         var fsPath = ResolveFileSystemPath(logicalPath);
         if (fsPath != null)
         {
@@ -215,7 +201,6 @@ public static class ResourceManager
         return null;
     }
 
-    /// <summary>尝试从内嵌资源加载并解码。</summary>
     private static BitmapImage? TryLoadFromEmbedded(string logicalPath)
     {
         if (!_embeddedMap.TryGetValue(logicalPath, out var entry))
@@ -237,7 +222,7 @@ public static class ResourceManager
         }
     }
 
-    /// <summary>同步预热单个图片。确保图片在协程开始前已就绪。</summary>
+    /// <summary>Warms up a single image synchronously.</summary>
     public static void WarmupSync(string logicalPath)
     {
         GetBitmap(logicalPath);
@@ -245,14 +230,14 @@ public static class ResourceManager
 
     #endregion
 
-    #region 后台预加载
+    #region Background Preloading
 
-    /// <summary>后台并行预加载所有图片资源（内嵌 + 文件系统）。</summary>
+    /// <summary>Preloads all image resources in parallel in the background.</summary>
     public static Task PreloadAllAsync(IProgress<int>? progress = null)
     {
         if (!_initialized) Initialize();
 
-        // 获取所有文件系统图片（网络搜索开销 O(n)，仅在 Splash 调用一次）
+        // Fetch all filesystem images; O(n) scan, so it runs once at Splash only.
         var allPaths = GetAllImagePaths().Where(p => !_bitmapCache.ContainsKey(p)).ToList();
         if (allPaths.Count == 0)
         {
@@ -268,14 +253,12 @@ public static class ResourceManager
                 try
                 {
                     if (_bitmapCache.ContainsKey(path)) return;
-                    // 内嵌资源
                     if (TryLoadFromEmbedded(path) is { } embBmp)
                     {
                         _bitmapCache[path] = embBmp;
                     }
                     else
                     {
-                        // 文件系统
                         var fsPath = ResolveFileSystemPath(path);
                         if (fsPath != null)
                         {
@@ -296,13 +279,12 @@ public static class ResourceManager
         });
     }
 
-    /// <summary>后台异步加载单张图片。缓存命中则立即返回，否则启动后台解码。</summary>
+    /// <summary>Loads a single image asynchronously in the background.</summary>
     public static Task<BitmapImage?> GetBitmapAsync(string logicalPath)
     {
         if (_bitmapCache.TryGetValue(logicalPath, out var cached))
             return Task.FromResult<BitmapImage?>(cached);
 
-        // 防重复提交
         if (!_pendingLoads.TryAdd(logicalPath, 0))
             return Task.FromResult<BitmapImage?>(null);
 
@@ -325,7 +307,7 @@ public static class ResourceManager
         });
     }
 
-    /// <summary>获取资源的文件系统绝对路径。仅文件系统资源有效；内嵌资源返回 null。</summary>
+    /// <summary>Gets the absolute filesystem path of a resource.</summary>
     public static string? GetFullPath(string logicalPath)
     {
         if (!_initialized) Initialize();
@@ -334,9 +316,8 @@ public static class ResourceManager
 
     #endregion
 
-    #region 解码
+    #region Decoding
 
-    /// <summary>从 Stream 解码 BitmapImage 并 Freeze（跨线程安全）。</summary>
     private static BitmapImage? DecodeBitmap(Stream stream)
     {
         try
@@ -353,7 +334,6 @@ public static class ResourceManager
         }
     }
 
-    /// <summary>从文件系统路径同步解码。</summary>
     private static BitmapImage? DecodeFromFile(string fullPath)
     {
         try
@@ -369,7 +349,6 @@ public static class ResourceManager
         }
     }
 
-    /// <summary>从 MemoryStream 解码 BitmapImage。</summary>
     private static BitmapImage? DecodeFromBytes(MemoryStream ms)
     {
         var bmp = new BitmapImage();
@@ -383,7 +362,7 @@ public static class ResourceManager
 
     #endregion
 
-    #region 辅助
+    #region Helpers
 
     private static string NormalizePath(string path)
     {
@@ -392,7 +371,7 @@ public static class ResourceManager
         return slashForm != path ? slashForm : path.Replace('\\', '/');
     }
 
-    /// <summary>清空所有缓存（调试用）。</summary>
+    /// <summary>Clears all caches.</summary>
     public static void ClearCache()
     {
         _bitmapCache.Clear();
@@ -400,7 +379,7 @@ public static class ResourceManager
         Logger.Info("Resource", "Bitmap cache cleared");
     }
 
-    /// <summary>获取缓存统计信息。</summary>
+    /// <summary>Gets cache statistics.</summary>
     public static (int Cached, int EmbeddedCount) GetStats()
         => (_bitmapCache.Count, _embeddedMap.Count);
     #endregion

@@ -8,7 +8,6 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer LogPanel 复刻。</summary>
 internal sealed class LogPanel : UEPanel
 {
     private const int MaxEntries = 500;
@@ -32,7 +31,7 @@ internal sealed class LogPanel : UEPanel
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(25) });
 
-        #region 日志区 (#080808)
+        #region Log area (#080808)
         _rows = new StackPanel { Background = new SolidColorBrush(UEPalette.LogScroll) };
         _scroller = new ScrollViewer
         {
@@ -84,7 +83,6 @@ internal sealed class LogPanel : UEPanel
 
         Logger.OnEntryWritten += OnEntry;
 
-        // 预填充已有历史(最多 200 条)
         foreach (var entry in Logger.RecentEntries.TakeLast(200))
             AppendEntry(entry);
         #endregion
@@ -134,7 +132,7 @@ internal sealed class LogPanel : UEPanel
         UEFactory.SetCell(msg, grid, 2);
 
         row.Child = grid;
-        _rows.Children.Insert(0, row); // 新日志在顶部
+        _rows.Children.Insert(0, row);
         while (_rows.Children.Count > MaxEntries)
             _rows.Children.RemoveAt(_rows.Children.Count - 1);
 

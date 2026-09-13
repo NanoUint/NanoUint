@@ -3,44 +3,44 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>声明式 Tween 动画组件。驱动 Transform 属性的平滑过渡。</summary>
+/// <summary>Declarative tween component that drives smooth transitions of Transform properties.</summary>
 public sealed class Tweener : Behaviour
 {
     private readonly List<TweenStep> _steps = new();
 
-    /// <summary>动画完成回调。</summary>
+    /// <summary>Callback invoked when the animation completes.</summary>
     public Action? OnComplete { get; set; }
 
-    /// <summary>是否正在播放。</summary>
+    /// <summary>Whether the tween is currently playing.</summary>
     public bool IsPlaying { get; private set; }
 
-    /// <summary>缓动函数（默认 OutExpo）。</summary>
+    /// <summary>Easing function (default OutExpo).</summary>
     public Func<float, float> Easing { get; set; } = Ease.OutExpo;
 
-    #region 链式构建 API
+    #region Fluent builder API
 
-    /// <summary>X 坐标过渡（归一化 0~1）。</summary>
+    /// <summary>Transitions the X coordinate (normalized 0-1).</summary>
     public Tweener ToX(float target, float duration)
     {
         _steps.Add(new TweenStep(TweenProp.X, target, duration));
         return this;
     }
 
-    /// <summary>Y 坐标过渡（归一化 0~1）。</summary>
+    /// <summary>Transitions the Y coordinate (normalized 0-1).</summary>
     public Tweener ToY(float target, float duration)
     {
         _steps.Add(new TweenStep(TweenProp.Y, target, duration));
         return this;
     }
 
-    /// <summary>Opacity 透明度过渡。</summary>
+    /// <summary>Transitions the opacity.</summary>
     public Tweener ToOpacity(float target, float duration)
     {
         _steps.Add(new TweenStep(TweenProp.Opacity, Math.Clamp(target, 0f, 1f), duration));
         return this;
     }
 
-    /// <summary>SortingOrder 过渡（取整数）。</summary>
+    /// <summary>Transitions the sorting order (rounded to an integer).</summary>
     public Tweener ToSortingOrder(int target, float duration)
     {
         _steps.Add(new TweenStep(TweenProp.SortingOrder, target, duration));
@@ -49,9 +49,9 @@ public sealed class Tweener : Behaviour
 
     #endregion
 
-    #region 控制
+    #region Control
 
-    /// <summary>启动动画。每步并行播放（全部同时开始）。</summary>
+    /// <summary>Starts the animation.</summary>
     public void Play()
     {
         if (_steps.Count == 0) return;
@@ -59,7 +59,7 @@ public sealed class Tweener : Behaviour
         StartCoroutine(RunTweens());
     }
 
-    /// <summary>停止动画（保留当前位置）。</summary>
+    /// <summary>Stops the animation, keeping the current position.</summary>
     public void Stop()
     {
         IsPlaying = false;
@@ -68,9 +68,9 @@ public sealed class Tweener : Behaviour
 
     #endregion
 
-    #region 批量快捷方式
+    #region Static shortcuts
 
-    /// <summary>淡入（Opacity 0→1）。</summary>
+    /// <summary>Fades in (opacity 0 -> 1).</summary>
     public static Tweener FadeIn(GameObject go, float duration = 0.5f, Action? onComplete = null)
     {
         go.Transform.Opacity = 0f;
@@ -81,7 +81,7 @@ public sealed class Tweener : Behaviour
         return tw;
     }
 
-    /// <summary>淡出（Opacity 1→0）。</summary>
+    /// <summary>Fades out (opacity 1 -> 0).</summary>
     public static Tweener FadeOut(GameObject go, float duration = 0.5f, Action? onComplete = null)
     {
         go.Transform.Opacity = 1f;
@@ -92,7 +92,7 @@ public sealed class Tweener : Behaviour
         return tw;
     }
 
-    /// <summary>移动到指定位置。</summary>
+    /// <summary>Moves to the given position.</summary>
     public static Tweener MoveTo(GameObject go, float x, float y, float duration = 0.5f, Action? onComplete = null)
     {
         var tw = go.AddComponent<Tweener>();
@@ -104,14 +104,13 @@ public sealed class Tweener : Behaviour
 
     #endregion
 
-    #region 内部
+    #region Internal
 
     private IEnumerator RunTweens()
     {
         var transform = GameObject?.Transform;
         if (transform == null || _steps.Count == 0) { IsPlaying = false; yield break; }
 
-        // 记录起始值
         var starts = new float[_steps.Count];
         for (int i = 0; i < _steps.Count; i++)
             starts[i] = _steps[i].GetValue(transform);
@@ -125,7 +124,7 @@ public sealed class Tweener : Behaviour
         {
             if (IsDestroyed || transform.IsDestroyed) { IsPlaying = false; yield break; }
 
-            // Enter 跳过
+            // Enter skips the animation
             if (InputManager.IsAdvancePressedThisFrame())
             {
                 InputManager.ConsumeAdvancePress();
@@ -144,7 +143,7 @@ public sealed class Tweener : Behaviour
             }
         }
 
-        // 确保最终值精确为目标值
+        // Snap the final values exactly to the targets
         for (int i = 0; i < _steps.Count; i++)
             _steps[i].SetValue(transform, _steps[i].Target);
 
@@ -154,7 +153,7 @@ public sealed class Tweener : Behaviour
 
     #endregion
 
-    #region 数据结构
+    #region Data structures
 
     private enum TweenProp { X, Y, Opacity, SortingOrder }
 

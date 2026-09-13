@@ -7,7 +7,6 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Rendering;
 
-/// <summary>WPF 渲染器。将 Scene 中的 Component 映射到 Canvas 上的 UIElement。</summary>
 internal sealed class WpfRenderer
 {
     private readonly Canvas _canvas;
@@ -19,12 +18,10 @@ internal sealed class WpfRenderer
     private double _lastCanvasHeight;
     private float _lastScaleFactor = 1f;
 
-    // Canvas Scaler support
     private CanvasScaler? _canvasScaler;
     private double _effectiveWidth;
     private double _effectiveHeight;
 
-    // 鼠标交互追踪（Unity EventSystem 风格接口调度）
     private GameObject? _hoveredGo;
     private static Point _lastMousePos;
     private static readonly Type[] PointerHandlerTypes =
@@ -36,19 +33,15 @@ internal sealed class WpfRenderer
         typeof(EventSystems.IPointerClickHandler),
     };
 
-    // Hint 提示浮层
     private Border? _hintPopup;
     private TextBlock? _hintText;
     private string? _lastHintText;
 
-    /// <summary>当前鼠标在 Canvas 中的位置（由 WpfEngineHost 更新）。</summary>
     internal static Point LastMousePosition
     {
         get => _lastMousePos;
         set => _lastMousePos = value;
     }
-
-    // 图片统一通过 ResourceManager.GetBitmap() 获取。
 
     public WpfRenderer(Canvas canvas)
     {
@@ -64,17 +57,14 @@ internal sealed class WpfRenderer
         _knownComponents.Clear();
     }
 
-    /// <summary>增量更新：只同步 RenderVersion 发生变化的组件。</summary>
     public void UpdateDirtyComponents()
     {
         if (_scene == null) return;
 
-        // 检测 Canvas 尺寸变化（分辨率切换 / 窗口缩放）→ 强制所有组件重新布局
         var currentW = _canvas.ActualWidth;
         var currentH = _canvas.ActualHeight;
         bool sizeChanged = Math.Abs(currentW - _lastCanvasWidth) > 0.5 || Math.Abs(currentH - _lastCanvasHeight) > 0.5;
 
-        // Canvas Scaler: 查找并更新缩放
         if (_canvasScaler == null || _canvasScaler.IsDestroyed)
             _canvasScaler = FindCanvasScaler();
 
@@ -88,7 +78,7 @@ internal sealed class WpfRenderer
                 _effectiveHeight = currentH / scale;
                 _canvas.RenderTransform = new ScaleTransform(scale, scale, 0, 0);
                 _canvas.RenderTransformOrigin = new Point(0, 0);
-                _lastVersion.Clear(); // 强制重新布局
+                _lastVersion.Clear();
             }
         }
         else
@@ -108,10 +98,9 @@ internal sealed class WpfRenderer
             _lastCanvasWidth = currentW;
             _lastCanvasHeight = currentH;
             if (_canvasScaler == null)
-                _lastVersion.Clear(); // 强制所有组件下一帧重新定位（已在 scaler 分支中处理）
+                _lastVersion.Clear();
         }
 
-        // 收集当前场景中所有需要渲染的组件
         var currentComponents = new HashSet<Component>();
         foreach (var go in _scene.RootObjects)
         {
@@ -123,7 +112,6 @@ internal sealed class WpfRenderer
             }
         }
 
-        // 移除已销毁/不可见的组件
         var toRemove = new List<Component>();
         foreach (var comp in _knownComponents)
         {
@@ -137,36 +125,32 @@ internal sealed class WpfRenderer
             _lastVersion.Remove(comp);
         }
 
-        // 新增或更新组件
         foreach (var comp in currentComponents)
         {
             if (!_knownComponents.Contains(comp))
             {
-                // 新组件：创建 UIElement
                 var visual = CreateVisual(comp);
                 if (visual != null)
                 {
                     _visualMap[comp] = visual;
                     _canvas.Children.Add(visual);
                     _knownComponents.Add(comp);
-                    if (UpdateVisual(comp, visual)) // 首次更新：全部成功才记 version
+                    if (UpdateVisual(comp, visual))
                         _lastVersion[comp] = comp.RenderVersion;
                 }
             }
             else if (_visualMap.TryGetValue(comp, out var existing))
             {
-                // 已有组件：仅在 version 变化时更新
                 var lastVer = _lastVersion.GetValueOrDefault(comp, -1);
                 if (comp.RenderVersion != lastVer)
                 {
                     if (UpdateVisual(comp, existing))
                         _lastVersion[comp] = comp.RenderVersion;
-                    // 若 UpdateVisual 返回 false（bitmap 后台加载中），不更新 version → 下帧重试
+                    // If UpdateVisual returns false (bitmap still decoding), keep the version so we retry next frame.
                 }
             }
         }
 
-        // 更新 Hint 浮层
         UpdateHintTooltip();
     }
 
@@ -194,10 +178,9 @@ internal sealed class WpfRenderer
         var transform = comp.GameObject?.Transform;
         if (transform == null) return true;
 
-        // 1. ZIndex — no size dependency
         Canvas.SetZIndex(element, transform.SortingOrder);
 
-        // 2. Per-type update FIRST — sets Width/Height so positioning below reads correct values.
+        // Per-type update FIRST — sets Width/Height so positioning below reads correct values.
         bool typeUpdateOk = comp switch
         {
             FlashOverlay fo => UpdateFlashOverlay(fo, element),
@@ -214,9 +197,6 @@ internal sealed class WpfRenderer
             _ => true
         };
 
-        // 3. Opacity, FlipX, positioning.
-        //    Self-positioning components (DialogueBox, FlashOverlay, AdvanceIndicator)
-        //    set their own Canvas.Left/Top in step 2 — only Opacity is applied here.
         if (element is FrameworkElement fe)
         {
             fe.Opacity = transform.Opacity;
@@ -226,8 +206,8 @@ internal sealed class WpfRenderer
             else
                 fe.RenderTransform = System.Windows.Media.Transform.Identity;
 
-            // Skip positioning for components that handle it in step 2
-            if (comp is DialogueBox or FlashOverlay or AdvanceIndicator or BackgroundRenderer or PhoneScreen)
+            if (comp is DialogueBox or FlashOverlay or AdvanceIndicator or BackgroundRenderer or PhoneScreen
+                || (comp is SpriteRenderer fullscreenSr && fullscreenSr.FullScreen))
             {
                 return typeUpdateOk;
             }
@@ -237,14 +217,12 @@ internal sealed class WpfRenderer
             var elemW = fe.ActualWidth > 0 ? fe.ActualWidth : (fe.Width > 0 ? fe.Width : 280);
             var elemH = fe.ActualHeight > 0 ? fe.ActualHeight : (fe.Height > 0 ? fe.Height : 46);
 
-            // RectTransform: 锚点定位（替代基础 Transform 的归一化 X/Y 定位）
             if (comp.GameObject?.GetComponent<RectTransform>() is { } rt)
             {
                 var (left, top) = rt.ComputeCanvasPosition(canvasW, canvasH, elemW, elemH);
                 Canvas.SetLeft(fe, left);
                 Canvas.SetTop(fe, top);
 
-                // 拉伸模式：设置元素宽高
                 if (rt.IsStretchX)
                 {
                     double stretchW = canvasW * (rt.AnchorMax.X - rt.AnchorMin.X) + rt.SizeDelta.X;
@@ -275,13 +253,13 @@ internal sealed class WpfRenderer
         }
     }
 
-    #region 组件 → WPF 控件创建
+    #region Component → WPF Control Creation
 
     private static System.Windows.Shapes.Rectangle CreateOverlayElement()
     {
         return new System.Windows.Shapes.Rectangle
         {
-            Width = double.NaN, Height = double.NaN, // 拉伸填充
+            Width = double.NaN, Height = double.NaN,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
             IsHitTestVisible = false,
@@ -294,7 +272,7 @@ internal sealed class WpfRenderer
         {
             Stretch = Stretch.Uniform,
             StretchDirection = StretchDirection.Both,
-            IsHitTestVisible = true, // 允许 Sprite 接收鼠标事件
+            IsHitTestVisible = true,
         };
     }
 
@@ -305,10 +283,9 @@ internal sealed class WpfRenderer
             Width = 1280, Height = 720,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
+            IsHitTestVisible = false,
         };
     }
-
-    /// <summary>系统 UI 图片统一通过 ResourceManager.GetBitmap() 加载。</summary>
 
     private static Border CreateDialogueBoxElement()
     {
@@ -321,7 +298,6 @@ internal sealed class WpfRenderer
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(8) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Accent bar
         var accentBar = new System.Windows.Shapes.Rectangle
         {
             Height = 4, Width = 120, RadiusX = 2, RadiusY = 2,
@@ -331,7 +307,6 @@ internal sealed class WpfRenderer
         Grid.SetRow(accentBar, 0);
         grid.Children.Add(accentBar);
 
-        // Speaker name
         var speakerLabel = new TextBlock
         {
             Name = "SpeakerLabel",
@@ -342,7 +317,6 @@ internal sealed class WpfRenderer
         Grid.SetRow(speakerLabel, 1);
         grid.Children.Add(speakerLabel);
 
-        // Dialogue text
         var textContent = new TextBlock
         {
             Name = "TextContent",
@@ -406,11 +380,10 @@ internal sealed class WpfRenderer
 
     #endregion
 
-    #region 组件属性 → WPF 控件更新
+    #region Component Properties → WPF Control Updates
 
     private bool UpdateSpriteRenderer(SpriteRenderer sr, UIElement element)
     {
-        // 口型动画：使用当前口型帧 Sprite（有 fallback 到主 Sprite）
         var activeSprite = sr.GetActiveMouthSprite();
         if (activeSprite == null) return true;
 
@@ -420,20 +393,34 @@ internal sealed class WpfRenderer
             if (bitmap != null)
             {
                 img.Source = bitmap;
-                var nativeW = activeSprite.Width > 0 ? activeSprite.Width : (bitmap.Width > 0 ? bitmap.Width : double.NaN);
-                var nativeH = activeSprite.Height > 0 ? activeSprite.Height : (bitmap.Height > 0 ? bitmap.Height : double.NaN);
-                var ppu = activeSprite.PixelsPerUnit > 0 ? activeSprite.PixelsPerUnit : 100f; // 默认 100，像素 1:1 显示
-                img.Width = nativeW * 100.0 / ppu;
-                img.Height = nativeH * 100.0 / ppu;
-
-                // 限制角色立绘最大高度为画面 78%，为对话筐留空间
-                var maxH = (_effectiveHeight > 0 ? _effectiveHeight : 1080) * 0.78;
-                img.MaxHeight = maxH;
+                // Use PixelWidth/PixelHeight (native pixels), not Width/Height (DIP, DPI-scaled):
+                // a 72-DPI image's Width overstates native pixels by 33%, mis-sizing sprites.
+                if (sr.FullScreen)
+                {
+                    var w = _effectiveWidth > 0 ? _effectiveWidth : ScreenManager.Width;
+                    var h = _effectiveHeight > 0 ? _effectiveHeight : ScreenManager.Height;
+                    img.Width = w;
+                    img.Height = h;
+                    img.MaxWidth = w;
+                    img.MaxHeight = h;
+                    img.Stretch = Stretch.Fill;
+                    Canvas.SetLeft(img, 0);
+                    Canvas.SetTop(img, 0);
+                }
+                else
+                {
+                    var nativeW = activeSprite.Width > 0 ? activeSprite.Width : (bitmap.PixelWidth > 0 ? bitmap.PixelWidth : double.NaN);
+                    var nativeH = activeSprite.Height > 0 ? activeSprite.Height : (bitmap.PixelHeight > 0 ? bitmap.PixelHeight : double.NaN);
+                    var ppu = activeSprite.PixelsPerUnit > 0 ? activeSprite.PixelsPerUnit : 100f;
+                    img.Width = nativeW * 100.0 / ppu;
+                    img.Height = nativeH * 100.0 / ppu;
+                    img.Stretch = Stretch.Uniform;
+                    img.MaxHeight = (_effectiveHeight > 0 ? _effectiveHeight : 1080) * 0.78;
+                }
             }
-            else { sr.MarkDirty(); return false; } // 后台解码中，下帧重试
+            else { sr.MarkDirty(); return false; }
             img.Opacity = sr.Tint.A / 255f * (sr.GameObject?.Transform.Opacity ?? 1f);
 
-            // 首次挂接鼠标事件
             if (img.Tag is not "mouse_hooked")
             {
                 HookSpriteMouseEvents(img, sr);
@@ -442,10 +429,8 @@ internal sealed class WpfRenderer
         return true;
     }
 
-    /// <summary>为 SpriteRenderer 挂接 WPF 鼠标事件 → IPointer*Handler 接口调度。</summary>
     private void HookSpriteMouseEvents(Image img, SpriteRenderer sr)
     {
-        // 检查此 GameObject 是否有任何组件实现了指针接口
         if (!HasPointerHandlers(sr.GameObject)) return;
 
         img.Tag = "mouse_hooked";
@@ -479,7 +464,6 @@ internal sealed class WpfRenderer
         };
     }
 
-    /// <summary>检查 GameObject 上是否有任何组件实现了指针事件接口。</summary>
     private static bool HasPointerHandlers(GameObject? go)
     {
         if (go == null) return false;
@@ -493,7 +477,6 @@ internal sealed class WpfRenderer
         return false;
     }
 
-    /// <summary>向 GameObject 上所有实现了 T 接口的组件派发事件。</summary>
     private static void DispatchPointerEvent<T>(GameObject go, Action<T> action)
     {
         foreach (var comp in go.Components)
@@ -512,7 +495,7 @@ internal sealed class WpfRenderer
             rect.Width = w; rect.Height = h;
             Canvas.SetLeft(rect, 0); Canvas.SetTop(rect, 0);
 
-            // 只用 Color 自身的 alpha，Transform.Opacity 由 UpdateVisual 统一通过 fe.Opacity 处理
+            // Use only the color's own alpha; Transform.Opacity is applied centrally via fe.Opacity in UpdateVisual.
             rect.Fill = new SolidColorBrush(
                 System.Windows.Media.Color.FromArgb(
                     overlay.Color.A,
@@ -527,7 +510,6 @@ internal sealed class WpfRenderer
         if (element is not Grid grid) return true;
         Panel.SetZIndex(grid, -100);
 
-        // 背景填满整个画布（覆盖 Canvas Scaler 的参考分辨率 1280×720 限制）
         var effectiveW = _effectiveWidth > 0 ? _effectiveWidth : 1280;
         var effectiveH = _effectiveHeight > 0 ? _effectiveHeight : 720;
         grid.Width = effectiveW;
@@ -539,7 +521,8 @@ internal sealed class WpfRenderer
         {
             while (grid.Children.Count < 2)
                 grid.Children.Add(new Image { Stretch = Stretch.UniformToFill,
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                    IsHitTestVisible = false });
 
             bool allReady = true;
             if (grid.Children[0] is Image oldImg)
@@ -564,7 +547,8 @@ internal sealed class WpfRenderer
                 grid.Children.RemoveAt(grid.Children.Count - 1);
             if (grid.Children.Count == 0)
                 grid.Children.Add(new Image { Stretch = Stretch.UniformToFill,
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                    IsHitTestVisible = false });
             if (grid.Children[0] is Image img)
             {
                 var bmp = LoadCachedBitmap(bg.Sprite);
@@ -573,7 +557,6 @@ internal sealed class WpfRenderer
             }
         }
 
-        // Tint 叠加层
         if (bg.TintColor.HasValue)
         {
             while (grid.Children.Count < 2)
@@ -593,7 +576,6 @@ internal sealed class WpfRenderer
         }
         else
         {
-            // 移除 tint 层
             while (grid.Children.Count > 1 && grid.Children[^1] is System.Windows.Shapes.Rectangle)
                 grid.Children.RemoveAt(grid.Children.Count - 1);
         }
@@ -608,19 +590,16 @@ internal sealed class WpfRenderer
         var effectiveW = _effectiveWidth > 0 ? _effectiveWidth : 1280;
         var effectiveH = _effectiveHeight > 0 ? _effectiveHeight : 720;
 
-        // 全宽、底部对齐：先测量内容高度再贴底
         border.Width = effectiveW;
         Canvas.SetLeft(border, 0);
         border.Measure(new System.Windows.Size(effectiveW, double.PositiveInfinity));
         var h = border.DesiredSize.Height > 10 ? border.DesiredSize.Height : border.MinHeight;
         Canvas.SetTop(border, Math.Max(0, effectiveH - h));
 
-        // Accent bar: only visible when speaker present
         if (grid.Children.Count > 0 && grid.Children[0] is System.Windows.Shapes.Rectangle accentBar)
             accentBar.Visibility = string.IsNullOrEmpty(db.SpeakerName)
                 ? Visibility.Collapsed : Visibility.Visible;
 
-        // Speaker name
         if (grid.Children.Count > 1 && grid.Children[1] is TextBlock speakerLabel)
         {
             speakerLabel.Text = db.SpeakerName;
@@ -628,12 +607,10 @@ internal sealed class WpfRenderer
                 ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        // Dialogue text
         if (grid.Children.Count > 2 && grid.Children[2] is TextBlock textContent)
         {
             textContent.Text = db.Text;
 
-            // 渐进式渐显 OpacityMask（0→1 从左到右展开）
             if (db.RevealProgress < 1f && db.Text.Length > 0)
             {
                 if (textContent.OpacityMask is not LinearGradientBrush mask)
@@ -678,19 +655,16 @@ internal sealed class WpfRenderer
 
         if (cg.Inline)
         {
-            // 内联模式：不覆盖位置，由 UpdateVisual 的 Transform 来控制
             sp.Orientation = Orientation.Horizontal;
         }
         else
         {
-            // 默认模式：全屏居中菜单
             sp.Orientation = Orientation.Vertical;
             sp.Width = 320;
             Canvas.SetLeft(sp, (w - 320) / 2);
             Canvas.SetTop(sp, Math.Max(80, (h - cg.ChoiceCount * 56) / 2));
         }
 
-        // 仅在选项内容变化时重建按钮
         var texts = cg.ChoiceTexts ?? Array.Empty<string>();
         bool needsRebuild = cg.ChoiceCount != _choiceGroupLastCount ||
             !TextArraysEqual(texts, _choiceGroupLastTexts);
@@ -730,7 +704,6 @@ internal sealed class WpfRenderer
                     btn.Margin = new Thickness(0, 4, 0, 4);
                 }
 
-                // 高亮当前选中项
                 bool isHighlighted = cg.HighlightIndex == idx;
                 btn.Background = new SolidColorBrush(isHighlighted
                     ? System.Windows.Media.Color.FromRgb(62, 191, 191)
@@ -751,7 +724,6 @@ internal sealed class WpfRenderer
         }
         else if (cg.Inline)
         {
-            // 无重建但需刷新高亮（按钮已存在）
             for (int i = 0; i < sp.Children.Count; i++)
             {
                 if (sp.Children[i] is System.Windows.Controls.Button btn)
@@ -801,7 +773,6 @@ internal sealed class WpfRenderer
         Canvas.SetTop(sv, 50);
         Panel.SetZIndex(sv, 600);
 
-        // 只在条目数变化时重建
         if (bl.Entries.Count != _backlogLastCount)
         {
             _backlogLastCount = bl.Entries.Count;
@@ -876,9 +847,7 @@ internal sealed class WpfRenderer
     #endregion
 
     #region PhoneScreen
-    // Canvas 子元素索引 (CreatePhoneElement 创建顺序)
     private const int CI_FRAME = 0, CI_SCREEN = 1, CI_BADGE = 2, CI_GLASS = 3, CI_ANIM = 4;
-    // screenGrid 子元素索引
     private const int SI_WP = 0, SI_CONTENT = 1, SI_BLACK = 2;
 
     private static Canvas CreatePhoneElement()
@@ -898,16 +867,16 @@ internal sealed class WpfRenderer
         var glassImg = new Image { Stretch = Stretch.Uniform, Opacity = 0.25, IsHitTestVisible = false };
         var animImg = new Image { Stretch = Stretch.Uniform, Visibility = Visibility.Collapsed };
 
-        screenGrid.Children.Add(wpImg);       // SI_WP
-        screenGrid.Children.Add(contentPanel); // SI_CONTENT
-        screenGrid.Children.Add(blackFill);    // SI_BLACK
+        screenGrid.Children.Add(wpImg);
+        screenGrid.Children.Add(contentPanel);
+        screenGrid.Children.Add(blackFill);
 
         var canvas = new Canvas { Visibility = Visibility.Collapsed };
-        canvas.Children.Add(frameImg);   // CI_FRAME
-        canvas.Children.Add(screenGrid); // CI_SCREEN
-        canvas.Children.Add(badgeImg);   // CI_BADGE
-        canvas.Children.Add(glassImg);   // CI_GLASS
-        canvas.Children.Add(animImg);    // CI_ANIM
+        canvas.Children.Add(frameImg);
+        canvas.Children.Add(screenGrid);
+        canvas.Children.Add(badgeImg);
+        canvas.Children.Add(glassImg);
+        canvas.Children.Add(animImg);
 
         return canvas;
     }
@@ -987,13 +956,9 @@ internal sealed class WpfRenderer
         var animImg = (Image)canvas.Children[CI_ANIM];
         var blackFill = (System.Windows.Shapes.Rectangle)screenGrid.Children[SI_BLACK];
 
-        #region Opening: ShowAnimation 帧动画
-        // Canvas 扩展到全屏高度 + animImg 底部对齐 → 手机从屏幕底部逐帧伸出
-        // PhoneScreen.Update() 每帧递增 SlideTimer → MarkDirty() 驱动此段逐帧刷新
-        // 动画结束自动切 BlackScreen（在 PhoneScreen.Update 中检测 SlideTimer >= duration）
+        #region Opening: ShowAnimation Frame Animation
         if (ps.CurrentState == PhoneScreen.State.Opening)
         {
-            // Canvas 扩展到全屏高度，让手机从底部向上伸出
             canvas.Height = canvasH;
             Canvas.SetTop(canvas, 0);
 
@@ -1016,7 +981,7 @@ internal sealed class WpfRenderer
 
         #endregion
 
-        #region 非 Opening: 常规位置与尺寸
+        #region Non-Opening: Normal Position and Size
         canvas.Height = fh;
         Canvas.SetTop(canvas, phoneY);
 
@@ -1027,12 +992,10 @@ internal sealed class WpfRenderer
 
         #endregion
 
-        #region BlackScreen: 锁屏黑屏
-        // 隐藏壁纸 + 显示黑色矩形覆盖屏幕区 + 清空内容
+        #region BlackScreen: Locked Black Screen
         if (ps.CurrentState == PhoneScreen.State.BlackScreen)
         {
-            // 壁纸设为首帧（纯黑），或隐藏壁纸 + 显示黑矩形
-            wpImg.Source = null; // 无壁纸
+            wpImg.Source = null;
             blackFill.Width = sw;
             blackFill.Height = sh;
             blackFill.Visibility = Visibility.Visible;
@@ -1044,7 +1007,7 @@ internal sealed class WpfRenderer
 
         #endregion
 
-        #region 内容重建（仅在状态/联系人变化时）
+        #region Content Rebuild (only when state or contact changes)
         if (ps.CurrentState == _phoneLastState &&
             ps.ActiveRineContact == _phoneLastContact)
             return true;
@@ -1091,12 +1054,11 @@ internal sealed class WpfRenderer
 
     #endregion
 
-    #region 各状态的 UI 构建
+    #region Per-State UI Construction
 
     private static void BuildHomeScreen(StackPanel panel, PhoneRenderConfig cfg, PhoneScreen ps,
         double screenW, double screenH)
     {
-        // 图标栏在底部
         var iconRow = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -1151,7 +1113,6 @@ internal sealed class WpfRenderer
     {
         panel.Margin = new Thickness(8, 8, 8, 8);
 
-        // 标题
         var header = new StackPanel { Orientation = Orientation.Horizontal };
         header.Children.Add(CreatePhoneButtonSmall("←", () => ps.BackToHome()));
         header.Children.Add(CreatePhoneText("RINE", 16, true, textPri));
@@ -1172,9 +1133,8 @@ internal sealed class WpfRenderer
             foreach (var conv in conversations.Take(20))
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-                // 头像
                 bool hasAvatar = cfg.ContactAvatars.TryGetValue(conv.ContactName, out var avatarPath);
-                var avatarBmp = hasAvatar ? ResourceManager.GetBitmap(avatarPath) : ResourceManager.GetBitmap(cfg.RineDefaultAvatarPath);
+                var avatarBmp = hasAvatar ? ResourceManager.GetBitmap(avatarPath!) : ResourceManager.GetBitmap(cfg.RineDefaultAvatarPath);
                 if (avatarBmp != null)
                 {
                     var avatar = new Image { Source = avatarBmp, Width = 36, Height = 36, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 8, 0) };
@@ -1187,7 +1147,7 @@ internal sealed class WpfRenderer
                 var txt = CreatePhoneText($"{unreadMark}{previewText}", 12, conv.HasUnread,
                     conv.HasUnread ? UintToColor(cfg.Accent) : textSec);
 
-                var contact = conv.ContactName; // capture
+                var contact = conv.ContactName;
                 row.MouseLeftButtonDown += (_, _) => ps.OpenRineChat(contact);
                 row.Children.Add(txt);
                 panel.Children.Add(row);
@@ -1200,11 +1160,10 @@ internal sealed class WpfRenderer
     {
         panel.Margin = new Thickness(8, 8, 8, 8);
 
-        // 标题栏
         var header = new StackPanel { Orientation = Orientation.Horizontal };
         header.Children.Add(CreatePhoneButtonSmall("←", () => ps.OpenRine()));
         bool hasAvatar = cfg.ContactAvatars.TryGetValue(ps.ActiveRineContact, out var avatarPath);
-        var avatarBmp = hasAvatar ? ResourceManager.GetBitmap(avatarPath) : ResourceManager.GetBitmap(cfg.RineDefaultAvatarPath);
+        var avatarBmp = hasAvatar ? ResourceManager.GetBitmap(avatarPath!) : ResourceManager.GetBitmap(cfg.RineDefaultAvatarPath);
         if (avatarBmp != null)
             header.Children.Add(new Image { Source = avatarBmp, Width = 24, Height = 24, Stretch = Stretch.Uniform, Margin = new Thickness(4, 0, 4, 0) });
         header.Children.Add(CreatePhoneText(ps.ActiveRineContact, 14, true, textPri));
@@ -1215,7 +1174,6 @@ internal sealed class WpfRenderer
             Fill = new SolidColorBrush(UintToColor(cfg.Divider)),
         });
 
-        // 消息列表（scrollable）
         var msgScroll = new ScrollViewer { MaxHeight = screenW > 0 ? screenW * 0.9 : 300, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         var msgPanel = new StackPanel();
         var messages = PhoneService.GetMessages(ps.ActiveRineContact);
@@ -1252,7 +1210,6 @@ internal sealed class WpfRenderer
         msgScroll.Content = msgPanel;
         panel.Children.Add(msgScroll);
 
-        // 底部操作栏
         var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) };
         footer.Children.Add(CreatePhoneButtonSmall("Stamp", () =>
         {
@@ -1319,7 +1276,6 @@ internal sealed class WpfRenderer
         panel.Children.Add(header);
         panel.Children.Add(CreatePhoneSpacer(8));
 
-        // 壁纸缩略图网格
         var grid = new WrapPanel { MaxWidth = screenW - 16 };
         for (int i = 0; i < cfg.WallpaperPaths.Length; i++)
         {
@@ -1343,7 +1299,6 @@ internal sealed class WpfRenderer
         }
         panel.Children.Add(grid);
 
-        // 左右切换箭头
         var arrowRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) };
         arrowRow.Children.Add(CreateImageButton(cfg.ArrowLeftPath, 32, 32, () => ps.CycleWallpaper(-1)));
         arrowRow.Children.Add(CreatePhoneText($" {ps.WallpaperIndex + 1}/{cfg.WallpaperPaths.Length} ", 12, false, UintToColor(cfg.TextSecondary)));
@@ -1353,7 +1308,7 @@ internal sealed class WpfRenderer
 
     #endregion
 
-    #region Phone UI 帮助方法
+    #region Phone UI Helpers
 
     private static double EaseOutCubic(double t) => 1 - Math.Pow(1 - t, 3);
 
@@ -1364,7 +1319,6 @@ internal sealed class WpfRenderer
             (byte)((c >> 8) & 0xFF),
             (byte)(c & 0xFF));
 
-    /// <summary>创建 App 图标 Button。hover 高亮通过 WPF 本地事件直接换 Image.Source。</summary>
     private static Button CreateAppIcon(string normalPath, string highlightPath, Action onClick)
     {
         var bmpNormal = ResourceManager.GetBitmap(normalPath);
@@ -1507,7 +1461,6 @@ internal sealed class WpfRenderer
         return border;
     }
 
-    /// <summary>Slider WPF 子元素引用（避开 FindName 问题）。</summary>
     private sealed record SliderRefs(
         System.Windows.Controls.TextBlock Label,
         System.Windows.Controls.Slider Slider,
@@ -1527,7 +1480,6 @@ internal sealed class WpfRenderer
             refs.Slider.Value = sl.Value;
         }
 
-        // 只订阅一次（用 Tag 标记）
         if (refs.Slider.Tag is not "hooked")
         {
             refs.Slider.Tag = "hooked";
@@ -1568,9 +1520,8 @@ internal sealed class WpfRenderer
 
     #endregion
 
-    #region 工具
+    #region Utilities
 
-    /// <summary>在场景中查找 CanvasScaler 组件。</summary>
     private CanvasScaler? FindCanvasScaler()
     {
         if (_scene == null) return null;
@@ -1583,10 +1534,9 @@ internal sealed class WpfRenderer
         return null;
     }
 
-    /// <summary>加载 BitmapImage，按 Sprite.Path 从 ResourceManager 缓存获取。</summary>
     private static BitmapImage? LoadCachedBitmap(Sprite sprite)
     {
-        // 同步解码：Sprite 内嵌 ImageData（如存档缩略图）→ 直接同步解码，无需后台线程
+        // Synchronous decode: a Sprite with embedded ImageData (e.g. save thumbnails) decodes inline, no background thread.
         if (sprite.ImageData is { Length: > 0 })
         {
             var key = sprite.Path;
@@ -1596,30 +1546,23 @@ internal sealed class WpfRenderer
             return null;
         }
 
-        // 委托给 ResourceManager（统一内嵌资源缓存）
         var result = ResourceManager.GetBitmap(sprite.Path);
         if (result != null) return result;
 
-        // 缓存未命中 — 启动后台加载，不阻塞 UI 线程
         _ = ResourceManager.GetBitmapAsync(sprite.Path);
-        return null; // 下帧重试
+        return null;
     }
 
-
-
-    /// <summary>预热 BitmapImage 缓存。委托给 ResourceManager。</summary>
     internal static void WarmupBitmap(Sprite sprite)
     {
         ResourceManager.WarmupSync(sprite.Path);
     }
 
-    /// <summary>同步预热单个图片。委托给 ResourceManager。</summary>
     internal static void WarmupBitmapSync(string logicalPath)
     {
         ResourceManager.WarmupSync(logicalPath);
     }
 
-    /// <summary>后台并行预加载所有图片。委托给 ResourceManager.PreloadAllAsync()。</summary>
     internal static async Task WarmupBitmapsAsync(IEnumerable<string> paths, IProgress<int>? progress = null)
     {
         await ResourceManager.PreloadAllAsync(progress);
@@ -1631,7 +1574,6 @@ internal sealed class WpfRenderer
 
     private static System.Windows.Shapes.Shape CreateLineRendererElement()
     {
-        // 默认创建 Polyline，Loop 时切换为 Polygon
         return new System.Windows.Shapes.Polyline
         {
             Stroke = Brushes.White,
@@ -1643,11 +1585,9 @@ internal sealed class WpfRenderer
     private bool UpdateLineRenderer(LineRenderer lr, UIElement element)
     {
         var transform = lr.GameObject?.Transform;
-        // 确保形状类型匹配（Loop 用 Polygon，非 Loop 用 Polyline）
         var needsShape = lr.Loop ? typeof(System.Windows.Shapes.Polygon) : typeof(System.Windows.Shapes.Polyline);
         if (element.GetType() != needsShape)
         {
-            // 类型不匹配：移除旧元素，创建新元素，交换
             _canvas.Children.Remove(element);
             _visualMap.Remove(lr);
             _knownComponents.Remove(lr);
@@ -1698,12 +1638,10 @@ internal sealed class WpfRenderer
 
     #endregion
 
-    #region Hint 浮层（鼠标旁提示文本）
+    #region Hint Overlay (tooltip text beside cursor)
 
-    /// <summary>更新鼠标旁的 Hint 提示浮层。每帧调用。</summary>
     private void UpdateHintTooltip()
     {
-        // 获取当前 hover 组件的 HintText
         string? hint = null;
         if (_hoveredGo != null && !_hoveredGo.IsDestroyed)
         {
@@ -1714,7 +1652,6 @@ internal sealed class WpfRenderer
             }
         }
 
-        // 无 hint → 隐藏浮层
         if (string.IsNullOrEmpty(hint))
         {
             if (_hintPopup != null)
@@ -1723,7 +1660,6 @@ internal sealed class WpfRenderer
             return;
         }
 
-        // 首次创建浮层
         if (_hintPopup == null)
         {
             _hintText = new TextBlock
@@ -1746,14 +1682,12 @@ internal sealed class WpfRenderer
             Panel.SetZIndex(_hintPopup, 10000);
         }
 
-        // 更新文本（只在变化时）
         if (hint != _lastHintText)
         {
             _lastHintText = hint;
             _hintText!.Text = hint;
         }
 
-        // 定位到鼠标旁边（偏移 16px）
         _hintPopup.Visibility = Visibility.Visible;
         Canvas.SetLeft(_hintPopup, _lastMousePos.X + 16);
         Canvas.SetTop(_hintPopup, _lastMousePos.Y + 16);
@@ -1771,15 +1705,15 @@ internal sealed class WpfRenderer
             bitmap.Freeze();
             return bitmap;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.Warning("Render", $"Bitmap decode failed ({data.Length} bytes): {ex.Message}");
             return null;
         }
     }
     #endregion
 }
 
-/// <summary>内部颜色转换工具。</summary>
 internal static class ColorConversion
 {
     public static System.Windows.Media.Color ToWpf(Drawing.Color c)

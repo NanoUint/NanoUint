@@ -4,24 +4,24 @@ using NanoUint.Scripting;
 
 namespace NanoUint;
 
-/// <summary>脚本管理器。.vns 管道的高层 API，游戏端通过 Load/Run 加载和执行脚本。</summary>
+/// <summary>High-level API for loading and running .vns scripts.</summary>
 public static class ScriptManager
 {
     private static ScriptEngine? _engine;
     private static CompiledScript? _currentScript;
 
-    #region 事件
+    #region Events
 
-    /// <summary>对话文本事件：(speaker, text)</summary>
+    /// <summary>Dialogue text event: (speaker, text)</summary>
     public static event Action<string?, string>? OnDialogue;
 
-    /// <summary>选择事件：(choiceTexts, choiceTargets)</summary>
+    /// <summary>Choice event: (choiceTexts, choiceTargets)</summary>
     public static event Action<List<string>, List<string>>? OnChoice;
 
-    /// <summary>脚本执行结束</summary>
+    /// <summary>Script execution ended</summary>
     public static event Action? OnScriptEnd;
 
-    /// <summary>任意命令执行时触发</summary>
+    /// <summary>Raised when any command executes</summary>
     public static event Action<string, Dictionary<string, object?>>? OnCommand;
 
     public static bool IsRunning => _engine?.IsRunning ?? false;
@@ -29,20 +29,21 @@ public static class ScriptManager
 
     #endregion
 
-    #region 加载
+    #region Loading
 
-    /// <summary>从嵌入资源路径加载 .vns 脚本。</summary>
+    /// <summary>Loads a .vns script from an embedded resource path.</summary>
     public static CompiledScript Load(string resourcePath)
     {
-        // 1. 尝试从 AssetDatabase 加载（嵌入资源）
         if (AssetDatabase.Exists(resourcePath))
         {
             var scriptAsset = AssetDatabase.Load<ScriptAsset>(resourcePath);
-            Debug.Log($"ScriptManager: Loaded '{resourcePath}' from embedded resources ({scriptAsset.Source.Length} chars)");
-            return CompileFromSource(scriptAsset.Source, resourcePath);
+            if (scriptAsset != null)
+            {
+                Debug.Log($"ScriptManager: Loaded '{resourcePath}' from embedded resources ({scriptAsset.Source.Length} chars)");
+                return CompileFromSource(scriptAsset.Source, resourcePath);
+            }
         }
 
-        // 2. 尝试从文件系统加载
         if (File.Exists(resourcePath))
         {
             var source = File.ReadAllText(resourcePath);
@@ -77,22 +78,19 @@ public static class ScriptManager
 
     #endregion
 
-    #region 执行
+    #region Execution
 
-    /// <summary>运行已编译的脚本。执行前预加载所有引用的资源。</summary>
+    /// <summary>Runs a compiled script, preloading its referenced assets.</summary>
     public static void Run(CompiledScript script, string? startLabel = null)
     {
         var engine = GetOrCreateEngine();
 
-        // 先注册基本命令
         EnsureCommandsRegistered(engine);
 
         _currentScript = script;
 
-        // 预加载脚本中引用的所有资源
         PreloadScriptAssets(script);
 
-        // 绑定引擎事件到静态事件
         engine.OnText += (speaker, text) => OnDialogue?.Invoke(speaker, text);
         engine.OnChoice += (texts, targets) => OnChoice?.Invoke(texts, targets);
         engine.OnScriptEnd += () => OnScriptEnd?.Invoke();
@@ -102,10 +100,8 @@ public static class ScriptManager
         Debug.Log($"ScriptManager: Running '{script.FilePath}'{(startLabel != null ? $" @ {startLabel}" : "")}");
     }
 
-    /// <summary>预加载编译脚本中所有引用的资源（背景、立绘、音频）。</summary>
     private static void PreloadScriptAssets(CompiledScript script)
     {
-        // 需要预加载资源的命令及其参数
         var imageCommands = new HashSet<string> { "bg", "sprite" };
         var audioCommands = new HashSet<string> { "bgm", "sfx", "voice" };
 
@@ -123,17 +119,17 @@ public static class ScriptManager
                 var sprite = AssetDatabase.Load<Sprite>(path);
                 if (sprite != null)
                 {
-                    // 预热 BitmapImage 缓存
+                    // Warm up the BitmapImage cache
                     Rendering.WpfRenderer.WarmupBitmap(sprite);
                     loaded++;
                 }
             }
             else if (audioCommands.Contains(cmd))
             {
-                // 预加载音频数据到内存缓存
+                // Preload audio data into the in-memory cache
                 var clip = AssetDatabase.Load<AudioClip>(path);
                 if (clip != null) loaded++;
-                // 同时预热 temp 文件提取（路径缓存 + 文件缓存）
+                // Also warm up temp-file extraction (path cache + file cache)
                 var s = AssetDatabase.OpenStream(path);
                 s?.Dispose();
             }
@@ -143,28 +139,28 @@ public static class ScriptManager
             Debug.Log($"ScriptManager: Preloaded {loaded} assets for '{script.FilePath}'");
     }
 
-    /// <summary>直接运行已加载的脚本。</summary>
+    /// <summary>Runs an already-loaded script directly.</summary>
     public static void Run(CompiledScript script) => Run(script, null);
 
-    /// <summary>继续执行（玩家点击推进后调用）。</summary>
+    /// <summary>Resumes execution after the player advances.</summary>
     public static void Continue()
     {
         _engine?.Continue();
     }
 
-    /// <summary>选择选项（ChoiceGroup 选择后调用）。</summary>
+    /// <summary>Selects a choice by index.</summary>
     public static void SelectChoice(int index)
     {
         _engine?.SelectChoice(index);
     }
 
-    /// <summary>停止脚本执行。</summary>
+    /// <summary>Stops script execution.</summary>
     public static void Stop()
     {
         _engine?.Stop();
     }
 
-    /// <summary>跳转到标签。</summary>
+    /// <summary>Jumps to a label.</summary>
     public static void JumpToLabel(string label)
     {
         _engine?.JumpToLabel(label);
@@ -172,26 +168,26 @@ public static class ScriptManager
 
     #endregion
 
-    #region 变量/标志
+    #region Variables / flags
 
     public static void SetFlag(string name, bool value) => _engine?.SetFlag(name, value);
     public static bool GetFlag(string name) => _engine?.GetFlag(name) ?? false;
     public static void SetVariable(string name, object? value) => _engine?.SetVariable(name, value);
     public static object? GetVariable(string name) => _engine?.GetVariable(name);
 
-    /// <summary>导出当前脚本执行状态（存档用）。VNS 模式有效，C# 模式返回 null。</summary>
+    /// <summary>Exports the current script execution state for saving.</summary>
     public static ScriptSaveState? SaveState() => _engine?.SaveState();
 
-    /// <summary>从存档恢复脚本执行状态。</summary>
+    /// <summary>Restores script execution state from a save.</summary>
     public static void LoadState(ScriptSaveState state) => _engine?.LoadState(state);
 
-    /// <summary>获取脚本引擎的所有 Flag（存档用）。</summary>
+    /// <summary>Gets all flags of the script engine (for saving).</summary>
     public static IReadOnlyDictionary<string, bool> GetAllFlags()
         => _engine?.GetAllFlags() ?? new Dictionary<string, bool>();
 
     #endregion
 
-    #region 内部
+    #region Internal
 
     private static ScriptEngine GetOrCreateEngine()
     {
@@ -206,7 +202,7 @@ public static class ScriptManager
     private static bool _commandsRegistered;
     private static object[]? _gameCommandInstances;
 
-    /// <summary>注册游戏层 VNS 命令。在 IGameBootstrapper.OnStart 中调用。</summary>
+    /// <summary>Registers game-layer VNS commands.</summary>
     public static void RegisterGameCommands(params object[] instances)
     {
         _gameCommandInstances = instances;
@@ -222,11 +218,10 @@ public static class ScriptManager
         if (_commandsRegistered) return;
         _commandsRegistered = true;
 
-        // 注册引擎内置命令（EngineCommands 使用静态 AudioManager + Scene API）
+        // Register engine built-in commands (EngineCommands uses the static AudioManager + Scene API)
         engine.ScanCommands(new EngineCommands());
         Debug.Log("ScriptManager: Engine commands registered.");
 
-        // 注册游戏层命令（如果已设置）
         if (_gameCommandInstances != null)
         {
             engine.ScanCommands(_gameCommandInstances);
@@ -236,7 +231,6 @@ public static class ScriptManager
 
     private static void RegisterInternalCommands(ScriptEngine engine)
     {
-        // 扫描当前程序集中所有 [RegistryInScript] 方法
         var asm = Assembly.GetExecutingAssembly();
         engine.ScanCommands(asm);
     }

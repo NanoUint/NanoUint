@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>等待一帧（到下一帧结束）。用于逐帧动画循环。</summary>
+/// <summary>Waits one frame (until the end of the next frame).</summary>
 public sealed class WaitForEndOfFrame
 {
     public static readonly WaitForEndOfFrame Instance = new();

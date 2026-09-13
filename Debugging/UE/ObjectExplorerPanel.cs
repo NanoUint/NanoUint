@@ -7,7 +7,6 @@ using System.Windows.Threading;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer ObjectExplorerPanel 1:1 复刻。</summary>
 internal sealed class ObjectExplorerPanel : UEPanel
 {
     private StackPanel _sceneRows = null!;
@@ -16,15 +15,14 @@ internal sealed class ObjectExplorerPanel : UEPanel
     private Grid _searchContent;
     private Button _sceneTabBtn;
     private Button _searchTabBtn;
-    private TextBox _filterInput;
-    private TextBox _searchInput;
-    private TextBlock _sceneNameText;
+    private TextBox _filterInput = null!;
+    private TextBox _searchInput = null!;
+    private TextBlock _sceneNameText = null!;
     private readonly HashSet<GameObject> _expanded = new();
     private readonly DispatcherTimer _autoRefresh;
     private string _filter = "";
     private string _searchQuery = "";
 
-    /// <summary>树节点/搜索结果被点击(选中 GameObject)。</summary>
     public event Action<GameObject>? OnGameObjectSelected;
 
     public ObjectExplorerPanel(Canvas parentCanvas)
@@ -59,21 +57,20 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
         #endregion
 
-        #region Scene Explorer 内容
+        #region Scene Explorer content
         _sceneContent = BuildSceneExplorer();
         Grid.SetRow(_sceneContent, 1);
         root.Children.Add(_sceneContent);
 
         #endregion
 
-        #region Object Search 内容
+        #region Object Search content
         _searchContent = BuildObjectSearch();
         Grid.SetRow(_searchContent, 1);
         root.Children.Add(_searchContent);
 
         ContentHost.Children.Add(root);
 
-        // 每秒自动刷新
         _autoRefresh = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromSeconds(1),
@@ -91,13 +88,13 @@ internal sealed class ObjectExplorerPanel : UEPanel
     private Grid BuildSceneExplorer()
     {
         var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Toolbar
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(25) }); // Filter
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) }); // 列头
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 树
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // SceneLoader
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(25) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        #region Toolbar (#262626): "Scene:" cyan + 场景下拉
+        #region Toolbar (#262626): "Scene:" cyan + scene dropdown
         var toolbar = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -116,7 +113,7 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
         #endregion
 
-        #region 过滤输入框
+        #region Filter input
         _filterInput = UEFactory.Input(double.NaN, 25, "", UEPalette.FilterNormal, UEPalette.FilterNormal, 12);
         var filterHost = new Grid { Background = new SolidColorBrush(UEPalette.FilterNormal) };
         filterHost.Children.Add(_filterInput);
@@ -134,7 +131,7 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
         #endregion
 
-        #region 列头行: Name / Sibling Index
+        #region Header row: Name / Sibling Index
         var header = new Grid { Background = new SolidColorBrush(UEPalette.Toolbar) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
@@ -150,7 +147,7 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
         #endregion
 
-        #region 树
+        #region Tree
         _sceneRows = new StackPanel();
         var scroller = new ScrollViewer
         {
@@ -165,7 +162,7 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
         #endregion
 
-        #region SceneLoader (标题 + 下拉 + Load 按钮, NanoUint 无场景文件加载 → 禁用)
+        #region SceneLoader (title + dropdown + Load button; NanoUint has no scene file loading, so disabled)
         var loader = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -199,8 +196,8 @@ internal sealed class ObjectExplorerPanel : UEPanel
     private Grid BuildObjectSearch()
     {
         var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(26) }); // 搜索框
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 结果
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(26) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
         _searchInput = UEFactory.Input(double.NaN, 26, "", UEPalette.FilterNormal, UEPalette.FilterNormal, 12);
         _searchInput.ToolTip = "Search by name or type...";
@@ -232,7 +229,7 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
     #endregion
 
-    #region Tab 切换
+    #region Tab switching
 
     private void SwitchTab(int index)
     {
@@ -245,9 +242,8 @@ internal sealed class ObjectExplorerPanel : UEPanel
 
     #endregion
 
-    #region 树构建
+    #region Tree building
 
-    /// <summary>重建场景树(Scene 加载后由宿主调用)。</summary>
     public void Refresh()
     {
         RebuildTree();
@@ -315,7 +311,6 @@ internal sealed class ObjectExplorerPanel : UEPanel
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
 
-        // 展开箭头
         var hasChildren = go.Transform.Children.Count > 0;
         var isExpanded = _expanded.Contains(go);
         var arrow = UEFactory.Label(
@@ -336,14 +331,12 @@ internal sealed class ObjectExplorerPanel : UEPanel
         }
         UEFactory.SetCell(arrow, grid, 1);
 
-        // active toggle
         var toggle = UEFactory.Check(go.ActiveSelf, v => go.ActiveSelf = v,
             UEPalette.BehaviourToggleGraphic);
         toggle.VerticalAlignment = VerticalAlignment.Center;
         toggle.HorizontalAlignment = HorizontalAlignment.Center;
         UEFactory.SetCell(toggle, grid, 2);
 
-        // 名称
         var nameColor = go.IsDestroyed
             ? UEPalette.TextDestroyed
             : go.ActiveSelf ? UEPalette.TextDefault : UEPalette.TextInactive;
@@ -354,7 +347,6 @@ internal sealed class ObjectExplorerPanel : UEPanel
         nameLabel.MouseLeftButtonDown += (_, _) => OnGameObjectSelected?.Invoke(go);
         UEFactory.SetCell(nameLabel, grid, 3);
 
-        // sibling index
         var siblingIndex = GetSiblingIndex(go);
         var siblingBox = UEFactory.Input(35, 20, siblingIndex.ToString(),
             UEPalette.SiblingInputBackground, UEPalette.InputBorder, 11, readOnly: true);
@@ -364,7 +356,6 @@ internal sealed class ObjectExplorerPanel : UEPanel
         siblingBox.ToolTip = "Sibling Index";
         UEFactory.SetCell(siblingBox, grid, 4);
 
-        // 子计数 [n] 灰色后缀(附加到名称后面)
         if (hasChildren)
         {
             var countRun = new Run($" [{go.Transform.Children.Count}]")

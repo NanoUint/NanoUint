@@ -2,33 +2,33 @@ using System.Collections;
 
 namespace NanoUint;
 
-/// <summary>手机触发系统 UI 组件。管理智能手机状态机（Closed → Opening → Home → Denha/Rine/Settings）。</summary>
+/// <summary>Phone trigger system UI component.</summary>
 public sealed class PhoneScreen : Behaviour
 {
     public enum State
     {
         Closed,
-        Opening,           // 滑入动画播放中
-        BlackScreen,       // 黑屏待机（等 Enter/点击解锁）
-        Home,              // 主屏幕（壁纸 + App 图标）
-        DenhaIncoming,     // 来电
-        DenhaInCall,       // 通话中
-        RineList,          // RINE 对话列表
-        RineChat,          // RINE 聊天界面
-        RineStamp,         // RINE 贴纸选择
-        Settings,          // 设置
-        SettingsWallpaper, // 壁纸选择
+        Opening,
+        BlackScreen,       // Blank screen; waits for Enter/tap to unlock
+        Home,              // Home screen with wallpaper and app icons
+        DenhaIncoming,
+        DenhaInCall,
+        RineList,
+        RineChat,
+        RineStamp,         // RINE sticker picker
+        Settings,
+        SettingsWallpaper,
     }
 
     private State _state = State.Closed;
 
-    #region 渲染配置（由游戏层初始化）
+    #region Render config (initialized by game layer)
 
     public PhoneRenderConfig? Config { get; set; }
 
     #endregion
 
-    #region 来电
+    #region Incoming call
 
     private string _callerName = "";
     private float _callTimer;
@@ -37,7 +37,7 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 邮件/回复（兼容旧 API）
+    #region Mail/Reply (legacy API compat)
 
     private string _mailSender = "", _mailSubject = "", _mailBody = "";
     private string[] _mailKeywords = Array.Empty<string>();
@@ -46,17 +46,17 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 导航状态
+    #region Navigation state
 
     private int _wallpaperIndex;
-    private int _highlightedApp = -1;  // -1=无高亮, 0=Denha, 1=Rine, 2=Settings
+    private int _highlightedApp = -1;  // -1 = none, 0 = Denha, 1 = Rine, 2 = Settings
     private string _activeRineContact = "";
     private string[] _availableStamps = Array.Empty<string>();
     private Action<int>? _onStampSelected;
 
     #endregion
 
-    #region 属性
+    #region Properties
 
     public State CurrentState => _state;
     public string CallerName => _callerName;
@@ -75,9 +75,9 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 导航方法
+    #region Navigation methods
 
-    /// <summary>显示手机（滑入动画 → 黑屏待机）。</summary>
+    /// <summary>Shows the phone.</summary>
     public void ShowHome()
     {
         if (_state != State.Closed) return;
@@ -87,7 +87,7 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>从黑屏唤醒到主屏幕。</summary>
+    /// <summary>Wakes from the black screen into the home screen.</summary>
     public void WakePhone()
     {
         if (_state != State.BlackScreen) return;
@@ -95,14 +95,14 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>切换手机显示（Closed → Opening, 否则 → Closed）。</summary>
+    /// <summary>Toggles phone visibility.</summary>
     public void Toggle()
     {
         if (_state == State.Closed) ShowHome();
         else Close();
     }
 
-    /// <summary>内部使用：让渲染器推进动画状态。</summary>
+    /// <summary>Sets the phone state.</summary>
     public void SetState(State s)
     {
         if (_state == s) return;
@@ -110,7 +110,7 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>滑入动画计时器（秒），渲染器读写。</summary>
+    /// <summary>Slide-in animation timer in seconds.</summary>
     public float SlideTimer
     {
         get => _slideTimer;
@@ -118,21 +118,21 @@ public sealed class PhoneScreen : Behaviour
     }
     private float _slideTimer;
 
-    /// <summary>打开电话 App。</summary>
+    /// <summary>Opens the phone app.</summary>
     public void OpenDenha()
     {
         _state = State.DenhaIncoming;
         MarkDirty();
     }
 
-    /// <summary>打开 RINE 对话列表。</summary>
+    /// <summary>Opens the RINE conversation list.</summary>
     public void OpenRine()
     {
         _state = State.RineList;
         MarkDirty();
     }
 
-    /// <summary>打开与某人的 RINE 聊天。</summary>
+    /// <summary>Opens the RINE chat with a contact.</summary>
     public void OpenRineChat(string contact)
     {
         _state = State.RineChat;
@@ -140,7 +140,7 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>打开 RINE 贴纸选择器。</summary>
+    /// <summary>Opens the RINE sticker picker.</summary>
     public void OpenRineStampPicker(string[] stamps, Action<int> onSelect)
     {
         _state = State.RineStamp;
@@ -149,7 +149,7 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>选择贴纸。</summary>
+    /// <summary>Selects a sticker.</summary>
     public void SelectStamp(int index)
     {
         if (_state != State.RineStamp || index < 0 || index >= _availableStamps.Length) return;
@@ -158,35 +158,35 @@ public sealed class PhoneScreen : Behaviour
         _onStampSelected?.Invoke(index);
     }
 
-    /// <summary>打开设置。</summary>
+    /// <summary>Opens settings.</summary>
     public void OpenSettings()
     {
         _state = State.Settings;
         MarkDirty();
     }
 
-    /// <summary>打开壁纸选择。</summary>
+    /// <summary>Opens the wallpaper picker.</summary>
     public void OpenWallpaperPicker()
     {
         _state = State.SettingsWallpaper;
         MarkDirty();
     }
 
-    /// <summary>选择壁纸。</summary>
+    /// <summary>Selects a wallpaper.</summary>
     public void SelectWallpaper(int index)
     {
         _wallpaperIndex = Math.Clamp(index, 0, 11);
         MarkDirty();
     }
 
-    /// <summary>循环壁纸（左右切换）。</summary>
+    /// <summary>Cycles the wallpaper (left/right).</summary>
     public void CycleWallpaper(int direction)
     {
         _wallpaperIndex = (_wallpaperIndex + direction + 12) % 12;
         MarkDirty();
     }
 
-    /// <summary>设置 App 高亮。</summary>
+    /// <summary>Sets the highlighted app.</summary>
     public void SetAppHighlight(int appIndex)
     {
         _highlightedApp = appIndex;
@@ -195,7 +195,7 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 来电（保持兼容旧 API）
+    #region Incoming call (legacy API compat)
 
     public void TriggerCall(string caller, float timeoutSec, Action onAnswer, Action onIgnore)
     {
@@ -225,7 +225,7 @@ public sealed class PhoneScreen : Behaviour
         _onIgnore?.Invoke();
     }
 
-    /// <summary>结束通话。</summary>
+    /// <summary>Ends the call.</summary>
     public void EndCall()
     {
         if (_state != State.DenhaInCall) return;
@@ -235,7 +235,7 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 邮件（兼容旧 API → 映射到 RINE）
+    #region Mail (legacy API -> maps to RINE)
 
     public void OpenMailbox()
     {
@@ -274,7 +274,7 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 关闭
+    #region Close
 
     public void Close()
     {
@@ -283,7 +283,7 @@ public sealed class PhoneScreen : Behaviour
         MarkDirty();
     }
 
-    /// <summary>返回主屏幕（从任意子界面）。</summary>
+    /// <summary>Returns to the home screen from any sub-screen.</summary>
     public void BackToHome()
     {
         _state = State.Home;
@@ -293,7 +293,7 @@ public sealed class PhoneScreen : Behaviour
 
     #endregion
 
-    #region 生命周期
+    #region Lifecycle
 
     protected internal override void Update(float deltaTime)
     {
@@ -311,7 +311,7 @@ public sealed class PhoneScreen : Behaviour
         else if (_state == State.Opening)
         {
             _slideTimer += deltaTime;
-            MarkDirty(); // 每帧触发渲染更新，推进动画帧
+            MarkDirty(); // Mark dirty each frame so the renderer advances the animation
             var duration = (float)(Config?.SlideDurationSec ?? 0.6);
             if (_slideTimer >= duration)
             {

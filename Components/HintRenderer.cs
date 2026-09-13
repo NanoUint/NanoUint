@@ -2,16 +2,16 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>鼠标悬停提示渲染器。在光标旁显示浮动提示文本。</summary>
+/// <summary>Mouse-hover hint renderer. Shows floating hint text next to the cursor.</summary>
 public sealed class HintRenderer : Component
 {
-    /// <summary>是否启用提示显示。</summary>
+    /// <summary>Whether hint display is enabled.</summary>
     public bool EnableHints { get; set; } = true;
 
-    /// <summary>提示文字颜色（默认翡翠青）。</summary>
+    /// <summary>Hint text color (default emerald).</summary>
     public Color TextColor { get; set; } = new(0x3E, 0xBF, 0xBF);
 
-    /// <summary>提示背景颜色（默认半透明黑）。</summary>
+    /// <summary>Hint background color (default semi-transparent black).</summary>
     public Color BackgroundColor { get; set; } = new(0x0A, 0x0A, 0x0A, 0xE0);
 
     public override string ToString() =>

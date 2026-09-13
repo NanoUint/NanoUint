@@ -1,30 +1,30 @@
 namespace NanoUint.Scripting;
 
-/// <summary>.vns 脚本词法分析的 Token 类型</summary>
+/// <summary>Token types produced by .vns script lexing</summary>
 public enum TokenType
 {
     Eof, NewLine,
-    AtSign,           // @
-    Hash,             // #
-    Colon,            // :
-    Dash,             // -
-    Arrow,            // ->
-    Comma,            // ,
-    LParen, RParen,   // ( )
-    Equals,           // =
-    Dollar,           // $
-    Dot,              // .
-    Ampersand,        // &
-    String,           // "文本"
-    Identifier,       // 字母数字名称
-    Number,           // 123 或 3.14
-    DoubleAt,         // @@
-    Comment,          // ; 或 // 注释
-    Semicolon,        // ;
-    DoubleSlash,      // //
+    AtSign,
+    Hash,
+    Colon,
+    Dash,
+    Arrow,
+    Comma,
+    LParen, RParen,
+    Equals,
+    Dollar,
+    Dot,
+    Ampersand,
+    String,
+    Identifier,
+    Number,
+    DoubleAt,
+    Comment,
+    Semicolon,
+    DoubleSlash,
 }
 
-/// <summary>词法分析器生成的单个 Token</summary>
+/// <summary>A single token produced by the lexer</summary>
 public class Token
 {
     public TokenType Type { get; set; }
@@ -35,7 +35,7 @@ public class Token
     public override string ToString() => $"[{Type}] '{Value}' at {Line}:{Column}";
 }
 
-/// <summary>.vns 脚本文件的词法分析器。将原始文本转换为 Token 流。</summary>
+/// <summary>Lexer for .vns script files. Converts raw text into a token stream.</summary>
 public class VnsLexer
 {
     private readonly string _source;
@@ -75,96 +75,83 @@ public class VnsLexer
 
         char c = _source[_pos];
 
-        // 换行符
         if (c == '\n' || c == '\r')
         {
             if (c == '\r' && Peek() == '\n') Advance();
             Advance();
-            int line = _line - 1; // 行号已递增
+            int line = _line - 1; // line number was already incremented
             return MakeToken(TokenType.NewLine, "\\n", line + 1, 1);
         }
 
-        // 注释
         if (c == ';' || (c == '/' && Peek() == '/'))
         {
             return ReadComment(c == '/' ? 2 : 1);
         }
 
-        // @@
         if (c == '@' && Peek() == '@')
         {
             Advance(); Advance();
             return MakeToken(TokenType.DoubleAt, "@@");
         }
 
-        // @
         if (c == '@')
         {
             Advance();
             return MakeToken(TokenType.AtSign, "@");
         }
 
-        // ->
         if (c == '-' && Peek() == '>')
         {
             Advance(); Advance();
             return MakeToken(TokenType.Arrow, "->");
         }
 
-        // #
         if (c == '#')
         {
             Advance();
-            // 只有后跟恰好6位或8位十六进制数字时才视为十六进制颜色。
-            // 3/4位颜色会与诸如 #abc、#ask_who 等标签冲突。
+            // Only a value with exactly 6 or 8 hex digits is treated as a hex color.
+            // 3/4-digit colors would collide with labels such as #abc, #ask_who.
             if (IsHex(Peek()))
             {
                 var saved = _pos;
                 var hex = ReadWhile(IsHex);
                 if ((hex.Length == 6 || hex.Length == 8) && !IsIdentPart(Peek()))
                     return MakeValueToken(TokenType.Identifier, "#" + hex);
-                // 不是十六进制颜色 —— 回退并作为标签标记处理
                 _pos = saved;
             }
             return MakeToken(TokenType.Hash, "#");
         }
 
-        // :
         if (c == ':')
         {
             Advance();
             return MakeToken(TokenType.Colon, ":");
         }
 
-        // -
         if (c == '-')
         {
             Advance();
             return MakeToken(TokenType.Dash, "-");
         }
 
-        // ,
         if (c == ',')
         {
             Advance();
             return MakeToken(TokenType.Comma, ",");
         }
 
-        // (
         if (c == '(')
         {
             Advance();
             return MakeToken(TokenType.LParen, "(");
         }
 
-        // )
         if (c == ')')
         {
             Advance();
             return MakeToken(TokenType.RParen, ")");
         }
 
-        // =
         if (c == '=')
         {
             Advance();
@@ -172,52 +159,43 @@ public class VnsLexer
             return MakeToken(TokenType.Equals, "=");
         }
 
-        // $
         if (c == '$')
         {
             Advance();
             return MakeToken(TokenType.Dollar, "$");
         }
 
-        // .
         if (c == '.')
         {
             Advance();
             return MakeToken(TokenType.Dot, ".");
         }
 
-        // &
         if (c == '&')
         {
             Advance();
             return MakeToken(TokenType.Ampersand, "&");
         }
 
-        // "
         if (c == '"')
         {
             return ReadString();
         }
 
-        // 数字
         if (char.IsDigit(c) || (c == '-' && char.IsDigit(Peek())))
         {
             return ReadNumber();
         }
 
-        // 标识符
         if (IsIdentStart(c))
         {
             var ident = ReadWhile(IsIdentPart);
             return MakeValueToken(TokenType.Identifier, ident);
         }
 
-        // 未知字符 —— 跳过
         Advance();
         return MakeToken(TokenType.Identifier, c.ToString());
     }
-
-    // ---- 辅助方法 ----
 
     private void SkipWhitespaceExceptNewline()
     {
@@ -241,7 +219,7 @@ public class VnsLexer
 
     private Token ReadString()
     {
-        Advance(); // 跳过开头的 "
+        Advance(); // skip the opening "
         var sb = new System.Text.StringBuilder();
         while (_pos < _source.Length && _source[_pos] != '"' && _source[_pos] != '\n' && _source[_pos] != '\r')
         {

@@ -2,56 +2,49 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>所有组件的抽象基类。挂载到 GameObject 上，由引擎主循环驱动生命周期。</summary>
+/// <summary>Abstract base class for all components.</summary>
 public abstract class Component
 {
-    /// <summary>此组件所属的 GameObject。</summary>
+    /// <summary>The GameObject this component belongs to.</summary>
     public GameObject? GameObject { get; internal set; }
 
-    /// <summary>是否启用。禁用的组件不会收到 Update 回调。</summary>
+    /// <summary>Whether the component is enabled.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>组件是否已被销毁。</summary>
+    /// <summary>Whether this component has been destroyed.</summary>
     public bool IsDestroyed { get; internal set; }
 
-    /// <summary>渲染版本号。当视觉属性变更时递增。WpfRenderer 用于增量同步。</summary>
     internal int RenderVersion { get; private set; }
 
-    /// <summary>标记组件需要重新同步到 WPF 控件树。</summary>
     internal void MarkDirty()
     {
         unchecked { RenderVersion++; }
     }
 
-    #region 生命周期（由引擎主循环调用）
+    #region Lifecycle (called by the engine main loop)
 
-    /// <summary>当组件被添加到 GameObject 后立即调用。</summary>
     protected internal virtual void Awake() { }
 
-    /// <summary>在第一次 Update 之前调用（仅当 Enabled=true 时）。</summary>
     protected internal virtual void Start() { }
 
-    /// <summary>每帧调用。deltaTime 单位为秒。</summary>
     protected internal virtual void Update(float deltaTime) { }
 
-    /// <summary>组件被销毁时调用。</summary>
     protected internal virtual void OnDestroy() { }
 
-    /// <summary>鼠标悬停时在光标旁显示的提示文本（null = 不显示）。供 HintRenderer 使用。</summary>
+    /// <summary>Tooltip shown next to the cursor on hover; null means hidden.</summary>
     public virtual string? HintText { get; set; }
 
-    /// <summary>深拷贝此组件的状态到新实例。子类应调用 base.Clone() 并覆写特定字段。</summary>
     internal virtual Component Clone()
     {
         var type = GetType();
         var clone = (Component)Activator.CreateInstance(type)!;
 
-        // 反射拷贝所有实例字段（跳过事件委托和不可写字段）
+        // Reflectively copy all instance fields (skipping event delegates and non-writable fields)
         foreach (var field in type.GetFields(
             System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance))
         {
-            // 跳过事件委托（C# 编译器生成的多播委托字段）
+            // Skip event delegates (compiler-generated multicast delegate fields)
             if (field.FieldType.BaseType == typeof(MulticastDelegate))
                 continue;
 
@@ -85,7 +78,6 @@ public abstract class Component
             catch (Exception ex) { Logger.Trace("Component", $"Clone skipped field '{field.Name}' on {GetType().Name}: {ex.Message}"); }
         }
 
-        // 重置运行时状态
         clone.GameObject = null;
         clone.Enabled = Enabled;
         return clone;

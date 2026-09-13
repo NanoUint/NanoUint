@@ -2,7 +2,7 @@ using System.IO;
 
 namespace NanoUint;
 
-/// <summary>热重载监视器。监听脚本目录的文件变动，自动重新加载 .vns 脚本。</summary>
+/// <summary>Hot reload watcher. Watches the script directory for file changes and reloads .vns scripts automatically.</summary>
 public sealed class HotReloadWatcher : IDisposable
 {
     private readonly string _watchDirectory;
@@ -51,7 +51,7 @@ public sealed class HotReloadWatcher : IDisposable
 
     private void HandleChange(string path)
     {
-        // 防抖：忽略短时间内重复事件
+        // Debounce: ignore repeated events within a short window
         if (_lastReload.TryGetValue(path, out var last) &&
             DateTime.Now - last < _debounceInterval)
             return;

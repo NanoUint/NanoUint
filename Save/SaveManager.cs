@@ -4,25 +4,25 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>存档管理器。20 槽 JSON 持久化，原子文件写入。</summary>
+/// <summary>Manages save slots with JSON persistence.</summary>
 public static class SaveManager
 {
     public const int MaxSlots = 30;
-    public const int QuickSaveSlot = 99; // 特殊槽位
+    public const int QuickSaveSlot = 99;
     private static readonly string SaveDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         "NanoUint", "Saves");
 
-    private static bool _allowSave = true; // 由保存边界检查控制
+    private static bool _allowSave = true; // Set by the save boundary check.
 
-    /// <summary>当前是否允许存档（保存边界检查）。</summary>
+    /// <summary>Whether saving is currently allowed.</summary>
     public static bool AllowSave
     {
         get => _allowSave;
         internal set => _allowSave = value;
     }
 
-    #region 快速存档
+    #region Quick Save
 
     public static void QuickSave(SaveData data)
     {
@@ -57,7 +57,7 @@ public static class SaveManager
 
     #endregion
 
-    #region 存档操作
+    #region Save Operations
 
     public static void Save(int slotIndex, SaveData data)
     {
@@ -81,7 +81,7 @@ public static class SaveManager
             var path = GetSlotPath(slotIndex);
             var json = JsonConvert.SerializeObject(data, Formatting.Indented);
 
-            // 原子写入
+            // Atomic write.
             var tmp = path + ".tmp";
             File.WriteAllText(tmp, json);
             var bak = path + ".bak";
@@ -125,7 +125,6 @@ public static class SaveManager
         }
     }
 
-    /// <summary>验证反序列化后的存档数据，防止恶意存档注入。</summary>
     private static bool ValidateSaveData(SaveData data)
     {
         const int maxStringLength = 4096;
@@ -137,11 +136,11 @@ public static class SaveManager
             return false;
         if (data.CurrentBGM?.Length > maxStringLength)
             return false;
-        if (data.ScriptStateJson?.Length > 65536)  // 脚本状态可以大一些
+        if (data.ScriptStateJson?.Length > 65536)  // Script state may legitimately be larger.
             return false;
         if (data.SceneStateJson?.Length > 65536)
             return false;
-        if (data.ThumbnailBase64?.Length > 2_000_000)  // ~1.5MB base64 缩略图
+        if (data.ThumbnailBase64?.Length > 2_000_000)
             return false;
         if (data.Flags.Count > maxCollectionSize)
             return false;
@@ -213,7 +212,7 @@ public static class SaveManager
     #endregion
 }
 
-/// <summary>存档数据 DTO。</summary>
+/// <summary>Save data DTO.</summary>
 public class SaveData
 {
     public int SchemaVersion { get; set; } = 1;
@@ -234,7 +233,7 @@ public class SaveData
         => $"{SaveTime:yyyy/MM/dd HH:mm} - {ChapterName}";
 }
 
-/// <summary>存档槽摘要信息（用于列表显示）。</summary>
+/// <summary>Save slot summary info.</summary>
 public class SaveSlotInfo
 {
     public int SlotIndex { get; set; }

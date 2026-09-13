@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>图片按钮。悬停时自动切换 SpriteRenderer 的 Sprite（正常/悬停）。</summary>
+/// <summary>Button that swaps its sprite on hover.</summary>
 public sealed class SpriteButton : Behaviour
 {
     private Sprite? _sprite;
@@ -8,7 +8,7 @@ public sealed class SpriteButton : Behaviour
     private SpriteRenderer? _cachedRenderer;
     private PassiveButton? _passive;
 
-    /// <summary>正常状态精灵。</summary>
+    /// <summary>Normal-state sprite.</summary>
     public Sprite? Sprite
     {
         get => _sprite;
@@ -20,50 +20,47 @@ public sealed class SpriteButton : Behaviour
         }
     }
 
-    /// <summary>悬停状态精灵。</summary>
+    /// <summary>Hover-state sprite.</summary>
     public Sprite? HoverSprite
     {
         get => _hoverSprite;
         set => _hoverSprite = value;
     }
 
-    /// <summary>是否正在悬停。</summary>
+    /// <summary>Whether the button is hovered.</summary>
     public bool IsHovered => _passive?.IsHovered ?? false;
 
-    /// <summary>是否正在按下。</summary>
+    /// <summary>Whether the button is pressed.</summary>
     public bool IsPressed => _passive?.IsPressed ?? false;
 
-    /// <summary>点击事件（由 PassiveButton 转发）。</summary>
+    /// <summary>Raised on click.</summary>
     public event Action? OnClick;
 
-    /// <summary>鼠标进入事件。</summary>
+    /// <summary>Raised when the mouse enters.</summary>
     public event Action? OnEnter;
 
-    /// <summary>鼠标离开事件。</summary>
+    /// <summary>Raised when the mouse exits.</summary>
     public event Action? OnExit;
 
-    /// <summary>悬停提示文本。</summary>
+    /// <summary>Hint text shown on hover.</summary>
     public override string? HintText { get; set; }
 
     protected internal override void Awake()
     {
         _cachedRenderer = GameObject?.GetComponent<SpriteRenderer>();
 
-        // 确保有 PassiveButton 处理交互
+        // Ensure a PassiveButton exists to handle interaction
         _passive = GameObject?.GetComponent<PassiveButton>();
         if (_passive == null && GameObject != null)
             _passive = GameObject.AddComponent<PassiveButton>();
 
-        // 转发 PassiveButton 事件
         _passive!.OnEnter += HandleEnter;
         _passive.OnExit += HandleExit;
         _passive.OnClick += HandleClick;
 
-        // 显示初始 Sprite
         if (_cachedRenderer != null && _sprite != null && !_passive.IsHovered)
             _cachedRenderer.Sprite = _sprite;
 
-        // 同步 HintText
         _passive.HintText = HintText;
     }
 

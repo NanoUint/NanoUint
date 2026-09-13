@@ -4,11 +4,11 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using NanoUint.Diagnostics;
 using Newtonsoft.Json;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer UEPanel 1:1 复刻。</summary>
 internal class UEPanel
 {
     private const double DefaultCanvasW = 1280;
@@ -25,13 +25,10 @@ internal class UEPanel
     private bool _dragging;
     private Point _dragOffset;
 
-    /// <summary>面板根 Border(挂到 Canvas 的元素)。</summary>
     public Border Root { get; }
 
-    /// <summary>内容宿主(子类把 UI 放进来)。</summary>
     public Grid ContentHost { get; }
 
-    /// <summary>持久化键。</summary>
     public string Id { get; }
 
     public string Title
@@ -43,18 +40,15 @@ internal class UEPanel
     public double MinPanelWidth { get; set; } = 350;
     public double MinPanelHeight { get; set; } = 75;
 
-    /// <summary>默认锚点(占 Canvas 比例 0-1)。</summary>
     public double DefaultLeft { get; set; } = 0.1;
     public double DefaultTop { get; set; } = 0.1;
     public double DefaultWidth { get; set; } = 0.3;
     public double DefaultHeight { get; set; } = 0.5;
 
-    /// <summary>标题栏关闭按钮被点击(面板已隐藏)。</summary>
     public event Action? Closed;
 
     public bool IsVisible => Root.Visibility == Visibility.Visible;
 
-    /// <summary>标题栏右侧附加控件容器(Inspector 的 Mouse Inspect / Close All 用)。</summary>
     public StackPanel TitleRightControls => _titleRight;
 
     public UEPanel(Canvas parentCanvas, string id, string title, Color contentBackground, int zIndex = 9999)
@@ -75,13 +69,12 @@ internal class UEPanel
         _rootGrid = new Grid();
         Root.Child = _rootGrid;
 
-        #region 内容层: 标题栏 + 内容
+        #region Content layer: title bar + content
         var contentGrid = new Grid();
         contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(UEPalette.TitleBarHeight) });
         contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         _rootGrid.Children.Add(contentGrid);
 
-        // 标题栏 (25px, #0F0F0F, 整栏拖拽)
         var titleBar = new Border
         {
             Background = new SolidColorBrush(UEPalette.PanelTitleBar),
@@ -105,7 +98,6 @@ internal class UEPanel
         Grid.SetColumn(_titleLabel, 0);
         _titleGrid.Children.Add(_titleLabel);
 
-        // 标题栏右侧附加控件区
         _titleRight = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -114,7 +106,6 @@ internal class UEPanel
         Grid.SetColumn(_titleRight, 1);
         _titleGrid.Children.Add(_titleRight);
 
-        // 关闭按钮 "—" (30x25, #54524F)
         var closeBtn = UEFactory.Button("—", 30, UEPalette.TitleBarHeight, UEPalette.PanelCloseButton, 12);
         closeBtn.HorizontalAlignment = HorizontalAlignment.Right;
         closeBtn.Click += (_, _) =>
@@ -129,14 +120,13 @@ internal class UEPanel
         Grid.SetRow(titleBar, 0);
         contentGrid.Children.Add(titleBar);
 
-        // 内容区
         ContentHost = new Grid { Background = new SolidColorBrush(contentBackground) };
         Grid.SetRow(ContentHost, 1);
         contentGrid.Children.Add(ContentHost);
 
         #endregion
 
-        #region 拖拽
+        #region Dragging
         titleBar.MouseLeftButtonDown += OnDragStart;
         titleBar.MouseLeftButtonUp += OnDragEnd;
         titleBar.MouseMove += OnDragMove;
@@ -144,12 +134,12 @@ internal class UEPanel
 
         #endregion
 
-        #region 点击置顶
+        #region Click to bring to front
         Root.MouseLeftButtonDown += (_, _) => SetAsLastSibling();
 
         #endregion
 
-        #region 8 方向缩放 Thumb
+        #region 8-direction resize thumbs
         CreateResizeThumbs();
 
         _canvas.Children.Add(Root);
@@ -158,7 +148,7 @@ internal class UEPanel
         #endregion
     }
 
-    #region 公开 API
+    #region Public API
 
     public void Show()
     {
@@ -181,7 +171,6 @@ internal class UEPanel
         else Show();
     }
 
-    /// <summary>置顶。</summary>
     public void SetAsLastSibling()
     {
         if (Root.Parent is Canvas c && c.Children.Count > 1)
@@ -189,7 +178,6 @@ internal class UEPanel
         _canvas.Children.Add(Root);
     }
 
-    /// <summary>按当前 Canvas 尺寸重新应用比例位置(窗口尺寸变化时调用)。</summary>
     public void ReapplyAnchors()
     {
         var canvasW = CanvasWidth;
@@ -202,7 +190,7 @@ internal class UEPanel
 
     #endregion
 
-    #region 拖拽
+    #region Dragging
 
     private void OnDragStart(object sender, MouseButtonEventArgs e)
     {
@@ -233,14 +221,13 @@ internal class UEPanel
 
     #endregion
 
-    #region 缩放
+    #region Resize
 
     private void CreateResizeThumbs()
     {
         var layer = new Grid();
         _rootGrid.Children.Add(layer);
 
-        // 四边
         AddResizeThumb(layer, HorizontalAlignment.Stretch, VerticalAlignment.Top,
             double.NaN, UEPalette.ResizeThickness, Cursors.SizeNS, ResizeFlags.Top);
         AddResizeThumb(layer, HorizontalAlignment.Stretch, VerticalAlignment.Bottom,
@@ -249,7 +236,6 @@ internal class UEPanel
             UEPalette.ResizeThickness, double.NaN, Cursors.SizeWE, ResizeFlags.Left);
         AddResizeThumb(layer, HorizontalAlignment.Right, VerticalAlignment.Stretch,
             UEPalette.ResizeThickness, double.NaN, Cursors.SizeWE, ResizeFlags.Right);
-        // 四角
         AddResizeThumb(layer, HorizontalAlignment.Left, VerticalAlignment.Top,
             UEPalette.ResizeThickness, UEPalette.ResizeThickness, Cursors.SizeNWSE, ResizeFlags.Left | ResizeFlags.Top);
         AddResizeThumb(layer, HorizontalAlignment.Right, VerticalAlignment.Top,
@@ -322,7 +308,7 @@ internal class UEPanel
 
     #endregion
 
-    #region 尺寸
+    #region Size
 
     private double CanvasWidth => _canvas.ActualWidth > 0 ? _canvas.ActualWidth : DefaultCanvasW;
     private double CanvasHeight => _canvas.ActualHeight > 0 ? _canvas.ActualHeight : DefaultCanvasH;
@@ -337,7 +323,7 @@ internal class UEPanel
 
     #endregion
 
-    #region 持久化
+    #region Persistence
 
     private static string StatePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -382,9 +368,9 @@ internal class UEPanel
             };
             File.WriteAllText(StatePath, JsonConvert.SerializeObject(file, Formatting.Indented));
         }
-        catch
+        catch (Exception ex)
         {
-            // 持久化失败不致命
+            Logger.Warning("UE", $"Panel state save failed: {ex.Message}");
         }
     }
 
@@ -407,8 +393,9 @@ internal class UEPanel
             }
             ApplyDefaultBounds();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.Warning("UE", $"Panel state load failed, using default bounds: {ex.Message}");
             ApplyDefaultBounds();
         }
     }

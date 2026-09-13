@@ -4,7 +4,7 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Scripting;
 
-/// <summary>顶层脚本引擎。整合 .vns 脚本的词法分析、解析、编译和执行。</summary>
+/// <summary>Top-level engine that loads, compiles, and runs .vns scripts.</summary>
 public class ScriptEngine
 {
     private readonly ScriptCommandRegistry _registry;
@@ -14,26 +14,25 @@ public class ScriptEngine
     private bool _isRunning;
     private bool _paused;
 
-    // 执行状态
     private readonly Dictionary<string, object?> _variables = new();
     private readonly Dictionary<string, bool> _flags = new();
     private readonly Stack<(CompiledScript Script, int StepIndex)> _callStack = new();
-    /// <summary>当需要显示文本行时触发（旁白或对白）</summary>
+    /// <summary>Raised when a text line should be shown (narration or dialogue)</summary>
     public event Action<string?, string>? OnText;
 
-    /// <summary>当需要向玩家展示选项时触发</summary>
+    /// <summary>Raised when choices should be presented to the player</summary>
     public event Action<List<string>, List<string>>? OnChoice;
 
-    /// <summary>当任意命令执行时触发</summary>
+    /// <summary>Raised when any command executes</summary>
     public event Action<string, Dictionary<string, object?>>? OnCommand;
 
-    /// <summary>当脚本结束或跳转到场景时触发</summary>
+    /// <summary>Raised when the script ends or jumps to a scene</summary>
     public event Action? OnScriptEnd;
 
-    /// <summary>从外部命令触发文本显示（用于 @say/@narration 等命令）。</summary>
+    /// <summary>Triggers text display from external commands.</summary>
     public void RaiseText(string? speaker, string text) => OnText?.Invoke(speaker, text);
 
-    /// <summary>当前脚本步骤，如果未运行则为 null</summary>
+    /// <summary>Current script step, or null if not running</summary>
     public ScriptStep? CurrentStep => _isRunning && _stepIndex < (_currentScript?.Steps.Count ?? 0)
         ? _currentScript!.Steps[_stepIndex] : null;
 
@@ -45,18 +44,18 @@ public class ScriptEngine
         _registry = new ScriptCommandRegistry();
     }
 
-    /// <summary>从游戏项目注册一个命令实现</summary>
+    /// <summary>Registers a command implementation from the game project</summary>
     public void RegisterCommand(IScriptCommand command) => _registry.Register(command);
 
-    /// <summary>扫描程序集中 [RegistryInScript] 装饰的静态方法并自动注册。</summary>
+    /// <summary>Scans an assembly for [RegistryInScript]-decorated static methods and auto-registers them.</summary>
     public void ScanCommands(Assembly assembly) =>
         ScriptCommandScanner.ScanAssembly(this, assembly);
 
-    /// <summary>扫描对象实例中 [RegistryInScript] 装饰的方法。</summary>
+    /// <summary>Scans object instances for [RegistryInScript]-decorated methods.</summary>
     public void ScanCommands(params object[] instances) =>
         ScriptCommandScanner.ScanInstances(this, instances);
 
-    /// <summary>从文件路径加载 .vns 脚本</summary>
+    /// <summary>Loads a .vns script from a file path</summary>
     public CompiledScript LoadFromFile(string filePath)
     {
         LogEngine($"LoadFromFile: reading {filePath}");
@@ -65,7 +64,7 @@ public class ScriptEngine
         return LoadFromSource(source, filePath);
     }
 
-    /// <summary>从字符串加载 .vns 脚本</summary>
+    /// <summary>Loads a .vns script from a string</summary>
     public CompiledScript LoadFromSource(string source, string filePath = "")
     {
         LogEngine($"LoadFromSource: creating lexer...");
@@ -91,7 +90,7 @@ public class ScriptEngine
         return compiled;
     }
 
-    /// <summary>开始执行已编译的脚本</summary>
+    /// <summary>Starts executing the compiled script</summary>
     public void Run(CompiledScript script, string? startLabel = null)
     {
         _currentScript = script;
@@ -99,7 +98,6 @@ public class ScriptEngine
         _isRunning = true;
         _callStack.Clear();
 
-        // 如果指定了起始标签，跳转到它
         if (startLabel != null)
         {
             var idx = FindLabel(startLabel);
@@ -107,14 +105,13 @@ public class ScriptEngine
         }
         else
         {
-            // 如果存在 #start 标签，跳转到那里
             var startIdx = FindLabel("start");
             if (startIdx >= 0) _stepIndex = startIdx;
         }
 
         LogEngine($"Run: _stepIndex={_stepIndex}, steps={_currentScript.Steps.Count}, dispatching ExecuteNext...");
 
-        // 通过 Dispatcher 推迟第一步
+        // Defer the first step via the Dispatcher
         var disp = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         LogEngine($"Run: dispatcher ok, posting...");
         disp.BeginInvoke(
@@ -127,15 +124,14 @@ public class ScriptEngine
         LogEngine($"Run: BeginInvoke posted, Run returning");
     }
 
-    /// <summary>请求引擎在当前命令完成后暂停</summary>
+    /// <summary>Requests the engine to pause after the current command finishes</summary>
     public void RequestPause() => _paused = true;
 
-    /// <summary>继续执行（在玩家跳过文本/选择后调用）</summary>
+    /// <summary>Resumes execution after the player skips text or picks a choice.</summary>
     public void Continue()
     {
         if (!_isRunning || _currentScript == null) return;
 
-        // 推进到下一行时停止当前语音
         AudioManager.StopVoice();
 
         _paused = false;
@@ -148,7 +144,7 @@ public class ScriptEngine
         ExecuteNext();
     }
 
-    /// <summary>根据索引选择选项（从0开始）</summary>
+    /// <summary>Selects a choice by index (zero-based)</summary>
     public void SelectChoice(int choiceIndex)
     {
         if (CurrentStep?.Type != ScriptStepType.Choice) return;
@@ -164,7 +160,7 @@ public class ScriptEngine
         }
     }
 
-    /// <summary>跳转到当前脚本中的命名标签</summary>
+    /// <summary>Jumps to a named label in the current script</summary>
     public void JumpToLabel(string labelName)
     {
         var idx = FindLabel(labelName);
@@ -175,7 +171,7 @@ public class ScriptEngine
         }
     }
 
-    /// <summary>停止执行</summary>
+    /// <summary>Stops execution</summary>
     public void Stop()
     {
         _isRunning = false;
@@ -184,15 +180,12 @@ public class ScriptEngine
 
     private static void LogEngine(string msg) => Logger.Trace("ScriptEngine", msg);
 
-    // ---- 内部执行 ----
-
-    /// <summary>处理一个交互步骤，自动跳过标签和非暂停命令，遇到玩家必须响应的事件时返回。</summary>
     private void ExecuteNext()
     {
         LogEngine($"ExecuteNext: _isRunning={_isRunning}, _stepIndex={_stepIndex}, steps={_currentScript?.Steps.Count}");
         if (!_isRunning || _currentScript == null) { LogEngine("ExecuteNext: abort - not running"); return; }
 
-        // 跳过标签和非暂停命令，直到遇到交互内容或运行完所有步骤。
+        // Skip labels and non-pausing commands until interactive content or all steps are done.
         int loopCount = 0;
         while (_stepIndex < _currentScript.Steps.Count)
         {
@@ -283,17 +276,14 @@ public class ScriptEngine
                     break;
 
                 default:
-                    // 未知步骤类型 —— 跳过
                     _stepIndex++;
                     break;
             }
         }
 
-        // 已到达步骤末尾
         EndScript();
     }
 
-    /// <summary>执行一组内联步骤（if/choice 语句体）</summary>
     private void ExecuteInline(List<ScriptStep> body)
     {
         foreach (var step in body)
@@ -357,13 +347,11 @@ public class ScriptEngine
         return -1;
     }
 
-    /// <summary>求值条件表达式，支持 flag.xxx、!flag.xxx、true/false</summary>
     private bool EvaluateCondition(string condition)
     {
         if (string.IsNullOrWhiteSpace(condition)) return false;
         var expr = condition.Trim();
 
-        // 取反
         bool negate = false;
         if (expr.StartsWith('!'))
         {
@@ -387,9 +375,7 @@ public class ScriptEngine
         OnScriptEnd?.Invoke();
     }
 
-    // ---- 存档状态 ----
-
-    /// <summary>导出当前脚本执行状态用于存档</summary>
+    /// <summary>Exports current script execution state for saving</summary>
     public ScriptSaveState SaveState()
     {
         return new ScriptSaveState
@@ -400,7 +386,7 @@ public class ScriptEngine
         };
     }
 
-    /// <summary>从存档恢复脚本执行状态</summary>
+    /// <summary>Restores script execution state from a save</summary>
     public void LoadState(ScriptSaveState state)
     {
         _variables.Clear();
@@ -415,22 +401,20 @@ public class ScriptEngine
         _isRunning = true;
     }
 
-    // ---- 变量/标记访问 ----
-
     public void SetVariable(string name, object? value) => _variables[name] = value;
     public object? GetVariable(string name) => _variables.TryGetValue(name, out var v) ? v : null;
     public void SetFlag(string flag, bool value) => _flags[flag] = value;
     public bool GetFlag(string flag) => _flags.TryGetValue(flag, out var v) && v;
 
-    /// <summary>获取所有标记（用于调试）</summary>
+    /// <summary>Gets all flags (for debugging)</summary>
     public IReadOnlyDictionary<string, bool> GetAllFlags() => _flags;
-    /// <summary>当前脚本名</summary>
+    /// <summary>Current script name</summary>
     public string? CurrentScriptName => _currentScript?.FilePath;
-    /// <summary>当前步骤索引（用于存档）</summary>
+    /// <summary>Current step index (for saving)</summary>
     public int CurrentStepIndex => _stepIndex;
 }
 
-/// <summary>脚本存档状态，可序列化</summary>
+/// <summary>Script save state, serializable</summary>
 public class ScriptSaveState
 {
     public int StepIndex { get; set; }

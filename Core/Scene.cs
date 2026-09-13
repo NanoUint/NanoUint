@@ -2,17 +2,17 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>场景：GameObject 的容器，也是保存/加载的序列化单元。</summary>
+/// <summary>Scene: a container of GameObjects and the serialization unit for save/load.</summary>
 public sealed class Scene
 {
     private readonly List<GameObject> _objects = new();
     private readonly Dictionary<string, GameObject> _objectMap = new();
     private bool _orderDirty;
 
-    /// <summary>场景名称。</summary>
+    /// <summary>Scene name.</summary>
     public string Name { get; }
 
-    /// <summary>场景中的根对象列表（已销毁对象自动过滤）。</summary>
+    /// <summary>Root objects in the scene.</summary>
     public IReadOnlyList<GameObject> RootObjects
     {
         get
@@ -28,12 +28,12 @@ public sealed class Scene
         Logger.Trace("Scene", $"Created: '{name}'");
     }
 
-    #region 对象管理
+    #region Object management
 
-    /// <summary>向场景添加一个已构造的 GameObject（如 Instantiate 产出）。</summary>
+    /// <summary>Adds an already-constructed GameObject to the scene.</summary>
     public GameObject AddObject(GameObject go)
     {
-        // 检测同名冲突并自动重命名
+        // Detect name collisions and auto-rename
         if (_objectMap.ContainsKey(go.Name))
         {
             int suffix = 1;
@@ -53,14 +53,14 @@ public sealed class Scene
         return go;
     }
 
-    /// <summary>向场景添加一个新的 GameObject。</summary>
+    /// <summary>Adds a new GameObject to the scene.</summary>
     public GameObject AddObject(string name = "GameObject")
     {
         var go = new GameObject(name);
         return AddObject(go);
     }
 
-    /// <summary>按名称查找对象。O(1)。</summary>
+    /// <summary>Finds an object by name. O(1).</summary>
     public GameObject? FindObject(string name)
     {
         _objectMap.TryGetValue(name, out var go);
@@ -72,7 +72,7 @@ public sealed class Scene
         return go;
     }
 
-    /// <summary>从场景中移除一个对象。</summary>
+    /// <summary>Removes an object from the scene.</summary>
     public void RemoveObject(GameObject obj)
     {
         _objects.Remove(obj);
@@ -84,34 +84,31 @@ public sealed class Scene
 
     #endregion
 
-    #region 主循环
+    #region Main loop
 
-    /// <summary>更新场景中所有激活的对象。由引擎每帧调用。</summary>
     internal void Update(float deltaTime)
     {
-        // 清理已销毁对象
         _objects.RemoveAll(o => o.IsDestroyed);
 
-        // 按 SortingOrder 排序（懒排序）
+        // Sort by SortingOrder (lazy: only when dirty)
         if (_orderDirty)
         {
             _objects.Sort((a, b) => a.Transform.SortingOrder.CompareTo(b.Transform.SortingOrder));
             _orderDirty = false;
         }
 
-        // 更新所有对象
-        foreach (var go in _objects)
+        // Snapshot iteration: objects may be destroyed or added during Update
+        foreach (var go in _objects.ToList())
             go.UpdateComponents(deltaTime);
 
-        // 驱动协程
         CoroutineScheduler.Instance.Tick(deltaTime);
     }
 
     #endregion
 
-    #region 保存/加载
+    #region Save/Load
 
-    /// <summary>收集场景中所有对象的可保存状态。</summary>
+    /// <summary>Collects the savable state of all objects in the scene.</summary>
     public SceneSaveState CollectSaveState()
     {
         var state = new SceneSaveState
@@ -134,7 +131,7 @@ public sealed class Scene
         return state;
     }
 
-    /// <summary>从保存状态恢复场景。</summary>
+    /// <summary>Restores the scene from a saved state.</summary>
     public void ApplySaveState(SceneSaveState state)
     {
         foreach (var objState in state.Objects)
@@ -156,7 +153,7 @@ public sealed class Scene
     #endregion
 }
 
-#region 保存状态 DTO
+#region Save-state DTOs
 
 public class SceneSaveState
 {

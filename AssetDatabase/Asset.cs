@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>资源类型枚举。</summary>
+/// <summary>Asset type enumeration.</summary>
 public enum AssetType
 {
     Sprite,
@@ -10,16 +10,16 @@ public enum AssetType
     RawData
 }
 
-/// <summary>所有引擎资源的抽象基类。</summary>
+/// <summary>Abstract base class for all engine assets.</summary>
 public abstract class Asset
 {
-    /// <summary>资源加载路径（如 "SteinsGateX.Resources.Sprites.Okabe.png"）。</summary>
+    /// <summary>Asset load path (e.g. "SteinsGateX.Resources.Sprites.Okabe.png").</summary>
     public string Path { get; internal set; } = "";
 
-    /// <summary>资源文件名（不含扩展名）。</summary>
+    /// <summary>Asset file name without extension.</summary>
     public string Name { get; internal set; } = "";
 
-    /// <summary>资源类型。</summary>
+    /// <summary>Asset type.</summary>
     public AssetType Type { get; protected set; }
 
     internal Asset() { }
@@ -27,14 +27,14 @@ public abstract class Asset
     public override string ToString() => $"{Type}:{Name} ({Path})";
 }
 
-/// <summary>精灵（图片）资源。PixelsPerUnit 定义多少像素 = 1 个世界单位（默认 100）。</summary>
+/// <summary>Sprite (image) asset.</summary>
 public sealed class Sprite : Asset
 {
     internal byte[] ImageData = Array.Empty<byte>();
     public int Width { get; internal set; }
     public int Height { get; internal set; }
 
-    /// <summary>像素密度：多少像素 = 1 个世界单位（默认 100，即 100px=1 单位，显示原始大小）。值越小图片越大。</summary>
+    /// <summary>Pixels per world unit (default 100).</summary>
     public float PixelsPerUnit { get; internal set; } = 100f;
 
     public Sprite()
@@ -43,7 +43,7 @@ public sealed class Sprite : Asset
     }
 }
 
-/// <summary>音频资源。</summary>
+/// <summary>Audio asset.</summary>
 public sealed class AudioClip : Asset
 {
     internal byte[] AudioData = Array.Empty<byte>();
@@ -55,7 +55,7 @@ public sealed class AudioClip : Asset
     }
 }
 
-/// <summary>脚本文本资源。</summary>
+/// <summary>Script text asset.</summary>
 public sealed class ScriptAsset : Asset
 {
     public string Source { get; internal set; } = "";

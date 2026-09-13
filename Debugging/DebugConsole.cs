@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NanoUint.Debugging;
 
-/// <summary>开发用的实时调试控制台。创建 Windows 控制台窗口并排显示日志输出。</summary>
+/// <summary>Development-time live debug console that allocates a Windows console for log output.</summary>
 public static class DebugConsole
 {
     [DllImport("kernel32.dll")]
@@ -20,7 +20,7 @@ public static class DebugConsole
     private static bool _initialized;
     private static readonly object _lock = new();
 
-    /// <summary>显示调试控制台窗口</summary>
+    /// <summary>Shows the debug console window.</summary>
     public static void Show()
     {
         if (_initialized) return;
@@ -37,7 +37,7 @@ public static class DebugConsole
         }
     }
 
-    /// <summary>隐藏调试控制台</summary>
+    /// <summary>Hides the debug console.</summary>
     public static void Hide()
     {
         if (!_initialized) return;
@@ -49,7 +49,7 @@ public static class DebugConsole
         }
     }
 
-    /// <summary>写入带时间戳的日志行</summary>
+    /// <summary>Writes a timestamped log line.</summary>
     public static void Log(string tag, string message)
     {
         if (!_initialized) return;
@@ -59,13 +59,13 @@ public static class DebugConsole
         }
     }
 
-    /// <summary>写入未格式化的行</summary>
+    /// <summary>Writes an unformatted line.</summary>
     public static void WriteLine(string message)
     {
         if (!_initialized) Console.WriteLine(message);
     }
 
-    /// <summary>将异常信息输出到控制台</summary>
+    /// <summary>Writes exception details to the console.</summary>
     public static void LogError(string tag, Exception ex)
     {
         if (!_initialized) return;

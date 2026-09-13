@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace NanoUint.Drawing;
 
-/// <summary>二维向量。WPF 无关的纯数学类型。</summary>
+/// <summary>2D vector. Pure math type independent of WPF.</summary>
 public readonly struct Vector2 : IEquatable<Vector2>
 {
     public float X { get; }
@@ -12,7 +12,7 @@ public readonly struct Vector2 : IEquatable<Vector2>
 
     public static readonly Vector2 Zero = new(0f, 0f);
     public static readonly Vector2 One = new(1f, 1f);
-    public static readonly Vector2 Up = new(0f, -1f);   // WPF/引擎坐标系：Y 下为正
+    public static readonly Vector2 Up = new(0f, -1f);   // WPF/engine coordinate system: +Y points down
     public static readonly Vector2 Down = new(0f, 1f);
     public static readonly Vector2 Left = new(-1f, 0f);
     public static readonly Vector2 Right = new(1f, 0f);

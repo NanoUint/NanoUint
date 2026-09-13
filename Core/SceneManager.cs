@@ -1,24 +1,24 @@
 namespace NanoUint;
 
-/// <summary>场景管理器。</summary>
+/// <summary>Scene manager.</summary>
 public static class SceneManager
 {
     private static Scene? _activeScene;
 
-    /// <summary>当前活跃场景。</summary>
+    /// <summary>Currently active scene.</summary>
     public static Scene? ActiveScene => _activeScene;
 
-    /// <summary>场景加载后触发。</summary>
+    /// <summary>Raised after a scene is loaded.</summary>
     public static event Action<Scene>? SceneLoaded;
 
-    /// <summary>加载一个场景（替换当前场景）。</summary>
+    /// <summary>Loads a scene, replacing the current one.</summary>
     public static void LoadScene(Scene scene)
     {
         _activeScene = scene;
         SceneLoaded?.Invoke(scene);
     }
 
-    /// <summary>获取活跃场景，若不存在则抛出异常。</summary>
+    /// <summary>Gets the active scene, throwing if none exists.</summary>
     public static Scene GetActiveScene()
     {
         return _activeScene ?? throw new InvalidOperationException("No active scene. Call SceneManager.LoadScene() first.");

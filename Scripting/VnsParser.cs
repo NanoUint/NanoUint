@@ -1,6 +1,6 @@
 namespace NanoUint.Scripting;
 
-/// <summary>.vns 脚本文件的递归下降解析器。构建 VnsDocument AST。</summary>
+/// <summary>Parses .vns script files into a VnsDocument AST.</summary>
 public class VnsParser
 {
     private readonly List<Token> _tokens;
@@ -22,8 +22,6 @@ public class VnsParser
         ParseBlocks(doc);
         return doc;
     }
-
-    // ---- 指令（仅文件顶部） ----
 
     private void ParseDirectives(VnsDocument doc)
     {
@@ -59,7 +57,7 @@ public class VnsParser
         {
             case "outline":
                 var outline = new OutlineDirective();
-                if (CheckNamed("name") || CheckNamed("title")) { Advance(); Expect(TokenType.Equals); } // 跳过 name=
+                if (CheckNamed("name") || CheckNamed("title")) { Advance(); Expect(TokenType.Equals); }
                 if (Check(TokenType.String)) outline.Title = Advance().Value;
                 Expect(TokenType.RParen);
                 return outline;
@@ -84,8 +82,6 @@ public class VnsParser
                 return null;
         }
     }
-
-    // ---- 块 ----
 
     private void ParseBlocks(VnsDocument doc)
     {
@@ -124,25 +120,23 @@ public class VnsParser
 
     private VnsBlock? ParseTextOrLabel()
     {
-        // 向前看：如果标识符后跟 ':'，则为角色对白行
+        // Lookahead: an identifier followed by ':' marks a character dialogue line
         var saved = _pos;
         var ident = Expect(TokenType.Identifier);
         if (Check(TokenType.Colon))
         {
-            Advance(); // ':'
+            Advance();
             SkipWhitespaceTokens();
             string text = "";
             if (Check(TokenType.String)) text = Advance().Value;
             else if (Check(TokenType.Identifier))
             {
-                // 将行剩余部分读取为文本
                 text = ReadRestOfLine();
             }
             return new TextBlock { Speaker = ident.Value, Text = text, Location = Loc() };
         }
         else
         {
-            // 只是一个裸标识符 —— 视为文本或忽略
             _pos = saved;
             return null;
         }
@@ -162,14 +156,14 @@ public class VnsParser
     private VnsBlock? ParseCommandOrIfOrChoice()
     {
         Expect(TokenType.AtSign);
-        SkipNewlines(); // 处理 @ 后可能出现的多余换行符
+        SkipNewlines(); // Handle extra newlines that may follow @
 
         var cmdName = Expect(TokenType.Identifier).Value;
 
         return cmdName switch
         {
             "if" => ParseIf(),
-            "elif" => null, // 在 ParseIf 内部处理
+            "elif" => null, // handled inside ParseIf
             "else" => null,
             "end" => null,
             "choice" => ParseChoice(),
@@ -181,7 +175,6 @@ public class VnsParser
     private IfBlock ParseIf()
     {
         var loc = Loc();
-        // 解析条件
         string? condition = null;
         if (Check(TokenType.LParen))
         {
@@ -194,10 +187,9 @@ public class VnsParser
         var body = ParseInnerBlocks("elif", "else", "end");
         var block = new IfBlock { Condition = condition, Body = body, Location = loc };
 
-        // 解析 elif
         while (Check(TokenType.AtSign) && PeekValue(1) == "elif")
         {
-            Advance(); Advance(); // @ elif
+            Advance(); Advance();
             string elifCond = "";
             if (Check(TokenType.LParen)) { Advance(); elifCond = ReadCondition(); Expect(TokenType.RParen); }
             SkipNewlines();
@@ -205,15 +197,13 @@ public class VnsParser
             block.ElseIfs.Add(new IfBlock { Condition = elifCond, Body = elifBody });
         }
 
-        // 解析 else
         if (Check(TokenType.AtSign) && PeekValue(1) == "else")
         {
-            Advance(); Advance(); // @ else
+            Advance(); Advance();
             SkipNewlines();
             block.ElseBody = ParseInnerBlocks("elif", "else", "end");
         }
 
-        // 消费 @end
         if (Check(TokenType.AtSign) && PeekValue(1) == "end") { Advance(); Advance(); }
         SkipNewlines();
 
@@ -223,7 +213,6 @@ public class VnsParser
     private ChoiceBlock ParseChoice()
     {
         var loc = Loc();
-        // 可选的带提示的括号
         if (Check(TokenType.LParen))
         {
             while (!Check(TokenType.RParen) && !IsAtEnd()) Advance();
@@ -240,7 +229,6 @@ public class VnsParser
             if (Check(TokenType.Dash))
             {
                 Advance();
-                // 解析选项：- "文本" -> #目标
                 string optText = "";
                 if (Check(TokenType.String)) optText = Advance().Value;
                 else optText = ReadRestOfLine().Trim();
@@ -260,11 +248,10 @@ public class VnsParser
             }
             else
             {
-                Advance(); // 跳过未知内容
+                Advance();
             }
         }
 
-        // 消费 @end
         if (Check(TokenType.AtSign)) { Advance(); if (Check(TokenType.Identifier) && Current.Value == "end") Advance(); }
 
         return choice;
@@ -276,7 +263,7 @@ public class VnsParser
         if (Check(TokenType.LParen))
         {
             Advance();
-            if (Check(TokenType.Hash)) { Advance(); } // 跳过 #
+            if (Check(TokenType.Hash)) { Advance(); }
             if (Check(TokenType.Identifier)) cmd.Arguments.Add(new PositionalArg { Value = new VnsLabelRef { LabelName = Advance().Value } });
             Expect(TokenType.RParen);
         }
@@ -293,7 +280,7 @@ public class VnsParser
             Expect(TokenType.RParen);
         }
 
-        // 解析流程绑定（-> output:#label 或 -> $var）
+        // Parse flow bindings (-> output:#label or -> $var)
         ParseFlowBindings(cmd);
 
         return cmd;
@@ -307,11 +294,10 @@ public class VnsParser
             if (++safety > 10_000) throw new InvalidOperationException("ParseCommandArgs: safety limit hit!");
             if (Check(TokenType.Comma)) { Advance(); continue; }
 
-            // 命名参数：key: value 或 key = value
             if (Check(TokenType.Identifier) && (PeekType(1) == TokenType.Colon || PeekType(1) == TokenType.Equals))
             {
                 var name = Advance().Value;
-                Advance(); // : 或 =
+                Advance();
                 var val = ParseValue();
                 cmd.NamedArguments[name] = val;
             }
@@ -328,7 +314,7 @@ public class VnsParser
     private void ParseFlowBindings(CommandBlock cmd)
     {
         if (!Check(TokenType.Arrow)) return;
-        Advance(); // ->
+        Advance();
 
         cmd.FlowBindings = new VnsFlowBindings();
 
@@ -339,7 +325,6 @@ public class VnsParser
             return;
         }
 
-        // 解析输出绑定：out_name:#label, out_name:$var
         while (!Check(TokenType.NewLine) && !Check(TokenType.Eof) && !Check(TokenType.AtSign))
         {
             if (Check(TokenType.Identifier))
@@ -421,8 +406,6 @@ public class VnsParser
         return new VnsVector2 { X = x, Y = y };
     }
 
-    // ---- 内部块解析（用于 if/choice 语句体） ----
-
     private List<VnsBlock> ParseInnerBlocks(params string[] stopCommands)
     {
         var blocks = new List<VnsBlock>();
@@ -449,8 +432,6 @@ public class VnsParser
         return blocks;
     }
 
-    // ---- 辅助方法 ----
-
     private string ReadRestOfLine()
     {
         var sb = new System.Text.StringBuilder();
@@ -465,7 +446,7 @@ public class VnsParser
     private string ReadCondition()
     {
         var sb = new System.Text.StringBuilder();
-        int depth = 0; // 跟踪嵌套括号
+        int depth = 0;
         while (!IsAtEnd())
         {
             if (Check(TokenType.RParen) && depth == 0) break;
@@ -499,7 +480,7 @@ public class VnsParser
     private Token Expect(TokenType type)
     {
         if (Check(type)) return Advance();
-        // 优雅地跳过意外 Token
+        // Gracefully skip unexpected tokens
         Advance();
         return new Token { Type = type, Value = "" };
     }

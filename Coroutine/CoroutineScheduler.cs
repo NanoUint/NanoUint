@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NanoUint;
 
-/// <summary>协程调度器。在引擎主循环中驱动 IEnumerator，支持嵌套协程。</summary>
+/// <summary>Runs IEnumerator coroutines and supports nesting.</summary>
 public sealed class CoroutineScheduler
 {
     public static CoroutineScheduler Instance { get; } = new();
@@ -12,39 +12,66 @@ public sealed class CoroutineScheduler
 
     private CoroutineScheduler() { }
 
-    /// <summary>启动一个协程（公开 API，任意组件可用）。</summary>
+    /// <summary>Starts a coroutine.</summary>
     public Coroutine Start(IEnumerator routine, Component owner)
     {
         var coroutine = new Coroutine();
         var state = new CoroutineState(coroutine, routine, owner);
         _active.Add(state);
 
-        // 立即执行第一步（处理 Awake/Start 中的协程）
+        // Run the first step immediately so coroutines started in Awake/Start do not stall a frame.
         if (!state.MoveNext(0f))
             _active.Remove(state);
 
         return coroutine;
     }
 
-    /// <summary>停止一个协程。</summary>
+    /// <summary>Stops a coroutine.</summary>
     public void Stop(Coroutine coroutine)
     {
         _active.RemoveAll(s => s.Coroutine == coroutine);
         coroutine.MarkStopped();
     }
 
-    /// <summary>每帧递增的计数器，用于 WaitForEndOfFrame 的同帧去重。</summary>
     internal int FrameNumber { get; private set; }
 
-    /// <summary>每帧由 Scene 调用，推进所有活跃协程。</summary>
+    private readonly List<CoroutineState> _tickBuffer = new();
+
+    private bool _ticking;
+
     internal void Tick(float deltaTime)
     {
         FrameNumber++;
-        for (int i = _active.Count - 1; i >= 0; i--)
+
+        // Tick iterates a snapshot, not _active: a coroutine may Start/Stop others inside MoveNext,
+        // which would mutate the collection mid-iteration. The buffer is reused to avoid per-frame allocation.
+        if (_ticking)
         {
-            var state = _active[i];
+            TickCore(new List<CoroutineState>(_active), deltaTime);
+            return;
+        }
+
+        _ticking = true;
+        try
+        {
+            _tickBuffer.Clear();
+            _tickBuffer.AddRange(_active);
+            TickCore(_tickBuffer, deltaTime);
+        }
+        finally
+        {
+            _ticking = false;
+        }
+    }
+
+    private void TickCore(List<CoroutineState> snapshot, float deltaTime)
+    {
+        for (int i = snapshot.Count - 1; i >= 0; i--)
+        {
+            var state = snapshot[i];
+            if (state.Coroutine.IsStopped) continue;
             if (!state.MoveNext(deltaTime))
-                _active.RemoveAt(i);
+                _active.Remove(state);
         }
     }
 
@@ -56,12 +83,11 @@ public sealed class CoroutineScheduler
         private object? _currentYield;
         private float _timer;
 
-        // 嵌套协程支持（用栈支持任意深度）
+        // Nested coroutines are tracked on a stack so nesting depth is unbounded.
         private Stack<IEnumerator>? _nestedStack;
         private object? _nestedYield;
         private float _nestedTimer;
 
-        /// <summary>上一次满足 WaitForEndOfFrame 的帧号，确保同帧只消费一次。</summary>
         private int _lastEndOfFrameTick;
 
         public CoroutineState(Coroutine coroutine, IEnumerator routine, Component owner)
@@ -74,7 +100,6 @@ public sealed class CoroutineScheduler
         [ThreadStatic]
         private static int _moveNextDepth;
 
-        /// <summary>推进协程一步。返回 false 表示协程结束。</summary>
         public bool MoveNext(float deltaTime)
         {
             if (_moveNextDepth > 50)
@@ -88,13 +113,11 @@ public sealed class CoroutineScheduler
             {
                 if (Coroutine.IsStopped) return false;
 
-                // 如果有活跃的嵌套协程栈，先推进最内层
                 if (_nestedStack != null && _nestedStack.Count > 0)
                 {
                     if (!AdvanceNested(deltaTime))
-                        return true; // 内层还在等
+                        return true;
 
-                    // 内层完成，弹出
                     _nestedStack.Pop();
                     _nestedYield = null;
                     _nestedTimer = 0f;
@@ -102,22 +125,20 @@ public sealed class CoroutineScheduler
                     if (_nestedStack.Count == 0)
                     {
                         _nestedStack = null;
-                        _currentYield = null; // 最外层 WaitForCoroutine 完成
+                        _currentYield = null;
                     }
                     return true;
                 }
 
-                // 如果当前在等待条件，检查是否满足
                 if (_currentYield != null)
                 {
                     if (!TrySatisfyYield(_currentYield, ref _timer, deltaTime))
-                        return true; // 继续等待
+                        return true;
 
                     _currentYield = null;
                     _timer = 0f;
                 }
 
-                // 推进 IEnumerator
                 bool hasNext;
                 try
                 {
@@ -131,10 +152,8 @@ public sealed class CoroutineScheduler
 
                 if (!hasNext) return false;
 
-                // 处理 yield return 值
                 var yieldValue = _routine.Current;
 
-                // 嵌套协程：支持 WaitForCoroutine / ICoroutineNestable / 原始 IEnumerator
                 IEnumerator? nestedRoutine = null;
                 if (yieldValue is WaitForCoroutine wfc)
                     nestedRoutine = wfc.Routine;
@@ -149,9 +168,8 @@ public sealed class CoroutineScheduler
                     _nestedStack.Push(nestedRoutine);
                     _nestedYield = null;
                     _nestedTimer = 0f;
-                    // 立即推进嵌套协程第一步
                     if (!AdvanceNested(deltaTime))
-                        return true; // 嵌套协程在等待
+                        return true;
                     _nestedStack.Pop();
                     _nestedStack = null;
                     _nestedYield = null;
@@ -162,7 +180,6 @@ public sealed class CoroutineScheduler
                 _currentYield = yieldValue;
                 _timer = 0f;
 
-                // 如果新 yield 立即可满足（如 WaitForSeconds(0)），同帧继续推进
                 if (TrySatisfyYield(_currentYield, ref _timer, deltaTime))
                 {
                     _currentYield = null;
@@ -178,24 +195,21 @@ public sealed class CoroutineScheduler
             }
         }
 
-        /// <summary>推进嵌套协程一步（使用栈顶）。返回 false 表示还在等待。</summary>
         private bool AdvanceNested(float deltaTime)
         {
             if (_nestedStack == null || _nestedStack.Count == 0) return true;
 
             var current = _nestedStack.Peek();
 
-            // 处理当前嵌套协程的 yield
             if (_nestedYield != null)
             {
                 if (!TrySatisfyYield(_nestedYield, ref _nestedTimer, deltaTime))
-                    return false; // 还在等
+                    return false;
 
                 _nestedYield = null;
                 _nestedTimer = 0f;
             }
 
-            // 推进当前嵌套 IEnumerator
             bool hasNext;
             try
             {
@@ -204,15 +218,14 @@ public sealed class CoroutineScheduler
             catch (Exception ex)
             {
                 Debug.LogError($"[Coroutine] Exception in nested coroutine on {Owner}: {ex}");
-                return true; // 异常 → 结束当前嵌套协程
+                return true;
             }
 
-            if (!hasNext) return true; // 当前嵌套协程完成
+            if (!hasNext) return true;
 
             _nestedYield = current.Current;
             _nestedTimer = 0f;
 
-            // 如果嵌套协程内部又 yield 了子协程，压入更深一层
             IEnumerator? deeperRoutine = null;
             if (_nestedYield is WaitForCoroutine deeperWfc)
                 deeperRoutine = deeperWfc.Routine;
@@ -229,15 +242,14 @@ public sealed class CoroutineScheduler
                 return AdvanceNested(deltaTime);
             }
 
-            // 检查是否立即可满足
             if (TrySatisfyYield(_nestedYield, ref _nestedTimer, deltaTime))
             {
                 _nestedYield = null;
                 _nestedTimer = 0f;
-                return AdvanceNested(deltaTime); // 继续推进
+                return AdvanceNested(deltaTime);
             }
 
-            return false; // 嵌套协程在等待
+            return false;
         }
 
         private bool TrySatisfyYield(object? yieldValue, ref float timer, float deltaTime)
@@ -252,7 +264,7 @@ public sealed class CoroutineScheduler
                 case TypewriterDelay td:
                     timer += deltaTime;
                     if (timer >= td.Duration) return true;
-                    // Enter 按下时立即返回（不消费）
+                    // Enter returns immediately without consuming the press (unlike WaitOrClick).
                     if (InputManager.IsAdvancePressedThisFrame())
                         return true;
                     return false;
@@ -271,11 +283,15 @@ public sealed class CoroutineScheduler
                     }
                     return false;
                 case WaitForClick:
+                    timer += deltaTime;
                     if (InputManager.IsAdvancePressedThisFrame())
                     {
                         InputManager.ConsumeAdvancePress();
                         return true;
                     }
+                    // Auto mode: after the text is fully shown, advance automatically after AutoAdvanceDelay seconds.
+                    if (SettingsManager.AutoAdvance && timer >= SettingsManager.AutoAdvanceDelay)
+                        return true;
                     return false;
                 case WaitForChoice wfc:
                     return wfc.ChoiceGroup.HasResult;
@@ -284,7 +300,7 @@ public sealed class CoroutineScheduler
                 case WaitUntil wu:
                     return wu.Predicate();
                 default:
-                    return true; // 未知 yield → 立即通过
+                    return true;
             }
         }
 
@@ -296,7 +312,7 @@ public sealed class CoroutineScheduler
     }
 }
 
-/// <summary>协程句柄。</summary>
+/// <summary>Coroutine handle.</summary>
 public sealed class Coroutine
 {
     public bool IsStopped { get; private set; }

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace NanoUint.Drawing;
 
-/// <summary>三维向量。WPF 无关的纯数学类型。</summary>
+/// <summary>3D vector. Pure math type independent of WPF.</summary>
 public readonly struct Vector3 : IEquatable<Vector3>
 {
     public float X { get; }

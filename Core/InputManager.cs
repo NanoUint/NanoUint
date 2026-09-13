@@ -1,9 +1,9 @@
 namespace NanoUint;
 
-/// <summary>输入管理器。提供跨平台的输入抽象。</summary>
+/// <summary>Input manager providing a cross-platform input abstraction.</summary>
 public static class InputManager
 {
-    /// <summary>按键分发委托。参数：Key；返回 true 表示已处理。</summary>
+    /// <summary>Key dispatch delegate; returns true when the key was handled.</summary>
     public static Func<System.Windows.Input.Key, bool>? KeyDispatch;
 
     private static bool _advancePressedThisFrame;
@@ -15,38 +15,38 @@ public static class InputManager
     private static bool _leftPressedThisFrame;
     private static bool _rightPressedThisFrame;
 
-    #region 全局热键事件（由游戏层订阅）
+    #region Global hotkey events (subscribed by game code)
 
-    /// <summary>F5 快速存档请求。</summary>
+    /// <summary>F5 quick-save request.</summary>
     public static event Action? QuickSaveRequested;
 
-    /// <summary>F9 快速读档请求。</summary>
+    /// <summary>F9 quick-load request.</summary>
     public static event Action? QuickLoadRequested;
 
-    /// <summary>Esc/右键 系统菜单请求。</summary>
+    /// <summary>Esc/right-click system menu request.</summary>
     public static event Action? SystemMenuRequested;
 
-    /// <summary>Page Up Backlog 请求。</summary>
+    /// <summary>Page Up backlog request.</summary>
     public static event Action? BacklogRequested;
 
-    /// <summary>Shift 隐藏 UI 切换请求。</summary>
+    /// <summary>Shift hide-UI toggle request.</summary>
     public static event Action? HideUIToggleRequested;
 
-    /// <summary>F6 打开存档画面请求。</summary>
+    /// <summary>F6 open save screen request.</summary>
     public static event Action? SaveScreenRequested;
 
-    /// <summary>F7 打开读档画面请求。</summary>
+    /// <summary>F7 open load screen request.</summary>
     public static event Action? LoadScreenRequested;
 
-    /// <summary>Skip 模式切换请求（热键或菜单触发）。</summary>
+    /// <summary>Skip mode toggle request (fired by hotkey or menu).</summary>
     public static event Action? SkipToggleRequested;
 
-    /// <summary>Auto 模式切换请求。</summary>
+    /// <summary>Auto mode toggle request.</summary>
     public static event Action? AutoToggleRequested;
 
     #endregion
 
-    #region 触发方法（引擎主机 + 游戏层调用）
+    #region Trigger methods (called by the engine host and game code)
 
     public static void FireQuickSave() => QuickSaveRequested?.Invoke();
     public static void FireQuickLoad() => QuickLoadRequested?.Invoke();
@@ -58,13 +58,13 @@ public static class InputManager
     public static void FireSkipToggle() => SkipToggleRequested?.Invoke();
     public static void FireAutoToggle() => AutoToggleRequested?.Invoke();
 
-    /// <summary>手机界面切换请求（Ctrl+P）。</summary>
+    /// <summary>Phone UI toggle request (Ctrl+P).</summary>
     public static event Action? PhoneToggleRequested;
     public static void FirePhoneToggle() => PhoneToggleRequested?.Invoke();
 
     #endregion
 
-    #region 由引擎宿主调用
+    #region Called by the engine host
 
     internal static void FeedAdvancePress()
     {
@@ -108,7 +108,7 @@ public static class InputManager
 
     internal static void EndFrame()
     {
-        // 在清零前先读取本帧事件状态
+        // Read this frame's event state before clearing it
         bool menuPressed = _menuPressedThisFrame;
 
         _advancePressedThisFrame = false;
@@ -119,64 +119,64 @@ public static class InputManager
         _leftPressedThisFrame = false;
         _rightPressedThisFrame = false;
 
-        // 每帧结束触发累积的热键事件
+        // Fire accumulated hotkey events at end of frame
         if (menuPressed)
             SystemMenuRequested?.Invoke();
     }
 
     #endregion
 
-    #region 公开 API
+    #region Public API
 
-    /// <summary>本帧是否按下了"推进"键（空格/回车/鼠标左键）。</summary>
+    /// <summary>Whether the advance key (Space/Enter/left mouse) was pressed this frame.</summary>
     public static bool IsAdvancePressedThisFrame() => _advancePressedThisFrame;
 
-    /// <summary>消耗本帧的推进输入，防止被多个消费者重复处理（如打字机跳过→WaitForAdvance）。</summary>
+    /// <summary>Consumes this frame's advance input.</summary>
     public static void ConsumeAdvancePress()
     {
         _advancePressedThisFrame = false;
     }
 
-    /// <summary>是否正按住"跳过"键（Ctrl）。</summary>
+    /// <summary>Whether the skip key (Ctrl) is held down.</summary>
     public static bool IsSkipHeld() => _skipHeld;
 
-    /// <summary>本帧是否切换了自动模式（A 键）。</summary>
+    /// <summary>Whether auto mode was toggled this frame (A key).</summary>
     public static bool IsAutoModeToggledThisFrame() => _autoToggledThisFrame;
 
-    /// <summary>本帧是否按了系统菜单键（Esc）。</summary>
+    /// <summary>Whether the system menu key (Esc) was pressed this frame.</summary>
     public static bool IsMenuPressedThisFrame() => _menuPressedThisFrame;
 
-    /// <summary>本帧是否按了上方向键。</summary>
+    /// <summary>Whether the up arrow was pressed this frame.</summary>
     public static bool IsUpPressedThisFrame() => _upPressedThisFrame;
 
-    /// <summary>本帧是否按了下方向键。</summary>
+    /// <summary>Whether the down arrow was pressed this frame.</summary>
     public static bool IsDownPressedThisFrame() => _downPressedThisFrame;
 
-    /// <summary>本帧是否按了左方向键。</summary>
+    /// <summary>Whether the left arrow was pressed this frame.</summary>
     public static bool IsLeftPressedThisFrame() => _leftPressedThisFrame;
 
-    /// <summary>本帧是否按了右方向键。</summary>
+    /// <summary>Whether the right arrow was pressed this frame.</summary>
     public static bool IsRightPressedThisFrame() => _rightPressedThisFrame;
 
-    /// <summary>消耗本帧的上方向键输入。</summary>
+    /// <summary>Consumes this frame's up-arrow input.</summary>
     public static void ConsumeUpPress()
     {
         _upPressedThisFrame = false;
     }
 
-    /// <summary>消耗本帧的下方向键输入。</summary>
+    /// <summary>Consumes this frame's down-arrow input.</summary>
     public static void ConsumeDownPress()
     {
         _downPressedThisFrame = false;
     }
 
-    /// <summary>消耗本帧的左方向键输入。</summary>
+    /// <summary>Consumes this frame's left-arrow input.</summary>
     public static void ConsumeLeftPress()
     {
         _leftPressedThisFrame = false;
     }
 
-    /// <summary>消耗本帧的右方向键输入。</summary>
+    /// <summary>Consumes this frame's right-arrow input.</summary>
     public static void ConsumeRightPress()
     {
         _rightPressedThisFrame = false;

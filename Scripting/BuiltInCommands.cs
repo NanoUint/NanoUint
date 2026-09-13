@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 using NanoUint.Diagnostics;
 using NanoUint.Debugging;
@@ -6,12 +5,12 @@ using WpfApplication = System.Windows.Application;
 
 namespace NanoUint.Scripting;
 
-/// <summary>内置脚本命令。提供 Win32 / 系统操作，扫描 NanoUint 程序集时自动注册。</summary>
+/// <summary>Built-in script commands for Win32 and system operations.</summary>
 public static class BuiltInCommands
 {
-    #region 系统 / Win32
+    #region System / Win32
 
-    /// <summary>@sys_exit() —— 关闭应用程序</summary>
+    /// <summary>@sys_exit() — closes the application</summary>
     [RegistryInScript("sys_exit")]
     public static void SysExit(ScriptCommandContext ctx)
     {
@@ -20,7 +19,7 @@ public static class BuiltInCommands
             WpfApplication.Current.Shutdown((int)code));
     }
 
-    /// <summary>@sys_message：显示 Windows 消息框，暂停脚本直到用户关闭。</summary>
+    /// <summary>@sys_message: shows a Windows message box and pauses the script until the user closes it.</summary>
     [RegistryInScript("sys_message")]
     public static void SysMessage(ScriptCommandContext ctx)
     {
@@ -35,7 +34,7 @@ public static class BuiltInCommands
         ctx.Engine.RequestPause();
     }
 
-    /// <summary>@sys_confirm：显示是/否对话框。流程绑定：-> yes:#label no:#label。</summary>
+    /// <summary>@sys_confirm: shows a Yes/No dialog. Flow bindings: -> yes:#label no:#label.</summary>
     [RegistryInScript("sys_confirm")]
     public static void SysConfirm(ScriptCommandContext ctx)
     {
@@ -65,46 +64,10 @@ public static class BuiltInCommands
         ctx.Engine.RequestPause();
     }
 
-    /// <summary>@sys_open_url("https://...") —— 在默认浏览器中打开 URL</summary>
-    [RegistryInScript("sys_open_url")]
-    public static void SysOpenUrl(ScriptCommandContext ctx)
-    {
-        var url = ctx.Arg<string>(0) ?? "";
-        if (string.IsNullOrEmpty(url)) return;
+    // @sys_open_url / @sys_run were removed: passing script-controlled arguments to
+    // Process.Start allowed arbitrary command execution (RCE). Do not reintroduce them.
 
-        try
-        {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            DebugConsole.LogError("sys_open_url", ex);
-        }
-    }
-
-    /// <summary>@sys_run：运行外部程序。</summary>
-    [RegistryInScript("sys_run")]
-    public static void SysRun(ScriptCommandContext ctx)
-    {
-        var program = ctx.Arg<string>(0) ?? "";
-        var arguments = ctx.Get<string>("args") ?? "";
-
-        if (string.IsNullOrEmpty(program)) return;
-
-        try
-        {
-            if (string.IsNullOrEmpty(arguments))
-                Process.Start(program);
-            else
-                Process.Start(program, arguments);
-        }
-        catch (Exception ex)
-        {
-            DebugConsole.LogError("sys_run", ex);
-        }
-    }
-
-    /// <summary>@sys_window_title("新标题") —— 更改主窗口标题</summary>
+    /// <summary>@sys_window_title("new title") — changes the main window title</summary>
     [RegistryInScript("sys_window_title")]
     public static void SysWindowTitle(ScriptCommandContext ctx)
     {
@@ -116,7 +79,7 @@ public static class BuiltInCommands
         });
     }
 
-    /// <summary>@sys_clipboard("文本") —— 将文本复制到剪贴板</summary>
+    /// <summary>@sys_clipboard("text") — copies text to the clipboard</summary>
     [RegistryInScript("sys_clipboard")]
     public static void SysClipboard(ScriptCommandContext ctx)
     {
@@ -130,9 +93,9 @@ public static class BuiltInCommands
 
     #endregion
 
-    #region 窗口状态
+    #region Window state
 
-    /// <summary>@sys_minimize() —— 最小化主窗口</summary>
+    /// <summary>@sys_minimize() — minimizes the main window</summary>
     [RegistryInScript("sys_minimize")]
     public static void SysMinimize(ScriptCommandContext ctx)
     {
@@ -143,7 +106,7 @@ public static class BuiltInCommands
         });
     }
 
-    /// <summary>@sys_maximize() —— 最大化主窗口</summary>
+    /// <summary>@sys_maximize() — maximizes the main window</summary>
     [RegistryInScript("sys_maximize")]
     public static void SysMaximize(ScriptCommandContext ctx)
     {
@@ -154,7 +117,7 @@ public static class BuiltInCommands
         });
     }
 
-    /// <summary>@sys_restore() —— 恢复主窗口到正常大小</summary>
+    /// <summary>@sys_restore() — restores the main window to normal size</summary>
     [RegistryInScript("sys_restore")]
     public static void SysRestore(ScriptCommandContext ctx)
     {
@@ -167,9 +130,9 @@ public static class BuiltInCommands
 
     #endregion
 
-    #region 调试 / 工具
+    #region Debug / utilities
 
-    /// <summary>@log("消息") —— 写入调试控制台</summary>
+    /// <summary>@log("message") — writes to the debug console</summary>
     [RegistryInScript("log")]
     public static void Log(ScriptCommandContext ctx)
     {
@@ -177,14 +140,14 @@ public static class BuiltInCommands
         DebugConsole.Log("Script", message);
     }
 
-    /// <summary>@wait：暂停脚本一段时间。</summary>
+    /// <summary>@wait: pauses the script for a period of time.</summary>
     [RegistryInScript("wait")]
     public static void Wait(ScriptCommandContext ctx)
     {
         var seconds = ctx.Arg<double>(0, 0.5);
         if (seconds <= 0) return;
 
-        // 使用 Dispatcher 定时器实现非阻塞延迟
+        // Dispatcher timer provides a non-blocking delay
         var timer = new System.Windows.Threading.DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(seconds)

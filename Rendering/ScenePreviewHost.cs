@@ -4,21 +4,21 @@ using System.Windows.Media;
 
 namespace NanoUint.Rendering;
 
-/// <summary>场景预览宿主（编辑器播放模式用）。把引擎渲染嵌入任意 Canvas。</summary>
+/// <summary>Scene preview host for editor play mode. Embeds engine rendering into any Canvas.</summary>
 public sealed class ScenePreviewHost
 {
     private readonly WpfRenderer _renderer;
     private DateTime _lastFrame;
     private bool _running;
 
-    /// <summary>渲染目标 Canvas。</summary>
+    /// <summary>Render target Canvas.</summary>
     public Canvas Root { get; }
 
-    /// <summary>预览场景（编辑器通过它添加 GameObject/组件）。</summary>
+    /// <summary>Preview scene; the editor adds GameObjects/components through it.</summary>
     public Scene Scene { get; }
 
-    /// <param name="referenceWidth">逻辑画布宽度（编辑器默认 1920）。</param>
-    /// <param name="referenceHeight">逻辑画布高度（编辑器默认 1080）。</param>
+    /// <param name="referenceWidth">Logical canvas width (editor default 1920).</param>
+    /// <param name="referenceHeight">Logical canvas height (editor default 1080).</param>
     public ScenePreviewHost(Canvas canvas, double referenceWidth = 1920, double referenceHeight = 1080)
     {
         Root = canvas;
@@ -27,7 +27,7 @@ public sealed class ScenePreviewHost
         _renderer.SetActiveScene(Scene);
         SceneManager.LoadScene(Scene);
 
-        // 逻辑画布缩放：Canvas 实际尺寸 → 1920×1080 归一化坐标
+        // Logical canvas scaling: map actual Canvas size to normalized 1920×1080 coordinates
         var scalerGo = Scene.AddObject("__CanvasScaler");
         var scaler = scalerGo.AddComponent<CanvasScaler>();
         scaler.ReferenceWidth = (float)referenceWidth;
@@ -35,7 +35,7 @@ public sealed class ScenePreviewHost
         scaler.ScaleMode = CanvasScaleMode.ScaleWithScreenSize;
     }
 
-    /// <summary>启动帧循环。</summary>
+    /// <summary>Starts the frame loop.</summary>
     public void Start()
     {
         if (_running) return;
@@ -44,7 +44,7 @@ public sealed class ScenePreviewHost
         CompositionTarget.Rendering += OnFrame;
     }
 
-    /// <summary>停止帧循环（窗口关闭时调用）。</summary>
+    /// <summary>Stops the frame loop; called when the window closes.</summary>
     public void Stop()
     {
         if (!_running) return;
@@ -52,7 +52,7 @@ public sealed class ScenePreviewHost
         CompositionTarget.Rendering -= OnFrame;
     }
 
-    /// <summary>触发所有根对象的 Start（编辑器构建完成后调用；Awake 已由 AddObject 触发）。</summary>
+    /// <summary>Runs Start on all root objects.</summary>
     public void StartScene()
     {
         foreach (var go in Scene.RootObjects.ToList())
@@ -61,7 +61,7 @@ public sealed class ScenePreviewHost
         }
     }
 
-    /// <summary>清空场景对象（保留 CanvasScaler）。</summary>
+    /// <summary>Clears scene objects, keeping the CanvasScaler.</summary>
     public void Clear()
     {
         foreach (var go in Scene.RootObjects.ToList())

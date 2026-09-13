@@ -6,7 +6,6 @@ using System.Windows.Media;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UE 风格下拉框（UnityExplorer uGUI Dropdown）。</summary>
 internal sealed class UEDropdown : ContentControl
 {
     private readonly TextBlock _valueText;
@@ -15,7 +14,6 @@ internal sealed class UEDropdown : ContentControl
     private IReadOnlyList<string> _items = Array.Empty<string>();
     private int _selectedIndex = -1;
 
-    /// <summary>选项切换时触发(参数为新索引)。</summary>
     public event Action<int>? SelectionChanged;
 
     public UEDropdown(double width, double height, double fontSize = 13)
@@ -61,6 +59,16 @@ internal sealed class UEDropdown : ContentControl
         ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Disabled);
         _list.Resources[typeof(ScrollBar)] = UEFactory.ScrollbarStyle();
         _list.ItemContainerStyle = CreateItemStyle(fontSize);
+
+        _popup = new Popup
+        {
+            Child = _list,
+            StaysOpen = false,
+            AllowsTransparency = true,
+            Placement = PlacementMode.Bottom,
+            PlacementTarget = display,
+        };
+
         _list.SelectionChanged += (_, _) =>
         {
             if (_list.SelectedIndex >= 0 && _list.SelectedIndex != _selectedIndex)
@@ -72,19 +80,9 @@ internal sealed class UEDropdown : ContentControl
             }
         };
 
-        _popup = new Popup
-        {
-            Child = _list,
-            StaysOpen = false,
-            AllowsTransparency = true,
-            Placement = PlacementMode.Bottom,
-            PlacementTarget = display,
-        };
-
         Content = display;
     }
 
-    /// <summary>选项列表。</summary>
     public IReadOnlyList<string> Items
     {
         get => _items;
@@ -95,7 +93,6 @@ internal sealed class UEDropdown : ContentControl
         }
     }
 
-    /// <summary>当前选中索引(-1 = 无)。</summary>
     public int SelectedIndex
     {
         get => _selectedIndex;
@@ -107,7 +104,6 @@ internal sealed class UEDropdown : ContentControl
         }
     }
 
-    /// <summary>当前显示文本(未选中时手动设置)。</summary>
     public string DisplayText
     {
         get => _valueText.Text;

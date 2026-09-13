@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>等待指定秒数（不受时间缩放影响）。</summary>
+/// <summary>Waits the given seconds, unaffected by time scaling.</summary>
 public sealed class WaitForSecondsRealtime
 {
     public float Duration { get; }

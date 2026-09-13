@@ -3,19 +3,20 @@ using NanoUint.Drawing;
 
 namespace NanoUint;
 
-/// <summary>精灵渲染器。挂载到 GameObject 上以显示 2D 图片（立绘、Logo 等），支持口型动画。</summary>
+/// <summary>Displays a 2D sprite with optional mouth-flap animation.</summary>
 public sealed class SpriteRenderer : Behaviour
 {
     private Sprite? _sprite;
     private Color _tint = Color.White;
+    private bool _fullScreen;
 
-    #region 口型动画
+    #region Mouth animation
     private Sprite? _mouthClosed, _mouthHalf, _mouthOpen;
     private bool _isSpeaking;
-    private int _currentMouthFrame; // 0=闭口, 1=半开, 2=全开
+    private int _currentMouthFrame; // 0 = closed, 1 = half-open, 2 = open
     private Coroutine? _mouthFlapRoutine;
 
-    /// <summary>要显示的精灵。</summary>
+    /// <summary>Sprite to display.</summary>
     public Sprite? Sprite
     {
         get => _sprite;
@@ -29,48 +30,70 @@ public sealed class SpriteRenderer : Behaviour
         }
     }
 
-    /// <summary>颜色叠加（Tint）。默认白色即无叠加。</summary>
+    /// <summary>Color tint; white means no tint.</summary>
     public Color Tint
     {
         get => _tint;
         set { if (!_tint.Equals(value)) { _tint = value; MarkDirty(); } }
     }
 
+    /// <summary>Whether to stretch the sprite to fill the whole screen.</summary>
+    public bool FullScreen
+    {
+        get => _fullScreen;
+        set
+        {
+            if (_fullScreen == value) return;
+            _fullScreen = value;
+            if (value && GameObject?.Transform != null)
+            {
+                GameObject.Transform.X = 0.5f;
+                GameObject.Transform.Y = 0.5f;
+            }
+            MarkDirty();
+        }
+    }
+
+    /// <summary>Makes the sprite fill the screen.</summary>
+    public SpriteRenderer SetFullScreen(bool fullScreen = true)
+    {
+        FullScreen = fullScreen;
+        return this;
+    }
+
     #endregion
 
-    #region 口型帧
+    #region Mouth frames
 
-    /// <summary>闭口帧（口型动画 _0）。</summary>
+    /// <summary>Closed-mouth frame.</summary>
     public Sprite? MouthClosed
     {
         get => _mouthClosed;
         set { _mouthClosed = value; if (_isSpeaking) MarkDirty(); }
     }
 
-    /// <summary>半开口型帧（口型动画 _1）。</summary>
+    /// <summary>Half-open mouth frame.</summary>
     public Sprite? MouthHalf
     {
         get => _mouthHalf;
         set { _mouthHalf = value; if (_isSpeaking) MarkDirty(); }
     }
 
-    /// <summary>全开口型帧（口型动画 _2）。</summary>
+    /// <summary>Open mouth frame.</summary>
     public Sprite? MouthOpen
     {
         get => _mouthOpen;
         set { _mouthOpen = value; if (_isSpeaking) MarkDirty(); }
     }
 
-    /// <summary>是否正在播放口型动画。</summary>
+    /// <summary>Whether the mouth animation is playing.</summary>
     public bool IsSpeaking => _isSpeaking;
 
-    /// <summary>当前口型帧索引（0=闭, 1=半, 2=全）。引擎内部读取。</summary>
     internal int CurrentMouthFrame => _currentMouthFrame;
 
-    /// <summary>是否有口型动画帧。</summary>
+    /// <summary>Whether any mouth animation frames are set.</summary>
     public bool HasMouthFlap => _mouthClosed != null || _mouthHalf != null || _mouthOpen != null;
 
-    /// <summary>获取当前应显示的口型 Sprite（含 fallback）。</summary>
     internal Sprite? GetActiveMouthSprite()
     {
         if (!_isSpeaking || !HasMouthFlap) return _sprite;
@@ -83,7 +106,7 @@ public sealed class SpriteRenderer : Behaviour
         };
     }
 
-    /// <summary>开始口型动画循环。</summary>
+    /// <summary>Starts the mouth-flap animation loop.</summary>
     public void StartMouthFlap()
     {
         if (_isSpeaking) return;
@@ -92,7 +115,7 @@ public sealed class SpriteRenderer : Behaviour
         _mouthFlapRoutine = StartCoroutine(MouthFlapLoop());
     }
 
-    /// <summary>停止口型动画并回复闭口状态。</summary>
+    /// <summary>Stops the mouth animation and returns to the closed-mouth state.</summary>
     public void StopMouthFlap()
     {
         _isSpeaking = false;
@@ -108,31 +131,26 @@ public sealed class SpriteRenderer : Behaviour
         }
     }
 
-    /// <summary>口型循环协程: _0→_1→_2→_1→_0→_1→... (3帧循环，~80ms/帧)。</summary>
     private IEnumerator MouthFlapLoop()
     {
         while (_isSpeaking)
         {
-            // 闭口短暂停留
+            // Brief hold on the closed frame
             yield return new WaitForSeconds(0.07f);
             if (!_isSpeaking) break;
 
-            // → 半开
             _currentMouthFrame = 1; MarkDirty();
             yield return new WaitForSeconds(0.08f);
             if (!_isSpeaking) break;
 
-            // → 全开
             _currentMouthFrame = 2; MarkDirty();
             yield return new WaitForSeconds(0.08f);
             if (!_isSpeaking) break;
 
-            // → 半开
             _currentMouthFrame = 1; MarkDirty();
             yield return new WaitForSeconds(0.08f);
             if (!_isSpeaking) break;
 
-            // → 闭口
             _currentMouthFrame = 0; MarkDirty();
         }
         _currentMouthFrame = 0;

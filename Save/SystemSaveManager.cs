@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace NanoUint;
 
-/// <summary>系统存档管理器。追踪跨周目进度：已解锁 CG/音乐/动画/TIPS/结局/章节。</summary>
+/// <summary>Tracks cross-playthrough unlock progress.</summary>
 public static class SystemSaveManager
 {
     private static readonly string SavePath = Path.Combine(
@@ -12,7 +12,7 @@ public static class SystemSaveManager
 
     private static SystemSaveData _data = new();
 
-    #region 访问器（返回只读视图，阻止外部代码绕过解锁方法直接修改内部集合）
+    #region Accessors (read-only views so external code cannot bypass the unlock methods)
 
     public static IReadOnlySet<string> UnlockedCGs => _data.UnlockedCGs;
     public static IReadOnlySet<string> UnlockedMusic => _data.UnlockedMusic;
@@ -28,16 +28,16 @@ public static class SystemSaveManager
         set => _data.TotalPlayTime = value;
     }
 
-    /// <summary>是否已通关至少一个结局（控制 EXTRA 解锁）。</summary>
+    /// <summary>Whether at least one ending has been reached.</summary>
     public static bool HasAnyEnding => _data.ReachedEndings.Count > 0;
 
-    /// <summary>是否已通关全部结局（控制 True End 解锁）。</summary>
+    /// <summary>Whether all endings have been reached.</summary>
     public static bool HasAllEndings(string[] allEndingIds) =>
         allEndingIds.All(id => _data.ReachedEndings.Contains(id));
 
     #endregion
 
-    #region 解锁方法
+    #region Unlock Methods
 
     public static void UnlockCG(string cgId) => _data.UnlockedCGs.Add(cgId);
     public static void UnlockMusic(string musicId) => _data.UnlockedMusic.Add(musicId);
@@ -50,7 +50,7 @@ public static class SystemSaveManager
 
     #endregion
 
-    #region 持久化
+    #region Persistence
 
     public static void Save()
     {
@@ -100,7 +100,7 @@ public static class SystemSaveManager
     #endregion
 }
 
-/// <summary>系统存档数据 DTO。</summary>
+/// <summary>System save data DTO.</summary>
 public sealed class SystemSaveData
 {
     public HashSet<string> UnlockedCGs { get; set; } = new();

@@ -2,12 +2,12 @@ using System.Collections;
 
 namespace NanoUint;
 
-/// <summary>继续阅读指示器。在文字框右下角提示玩家按 Enter 继续。</summary>
+/// <summary>Continue indicator that prompts the player to press Enter.</summary>
 public sealed class AdvanceIndicator : Behaviour
 {
     private bool _visible;
 
-    /// <summary>指示器是否可见。</summary>
+    /// <summary>Whether the indicator is visible.</summary>
     public bool Visible
     {
         get => _visible;
@@ -23,7 +23,6 @@ public sealed class AdvanceIndicator : Behaviour
         }
     }
 
-    /// <summary>当前动画帧（0-11，12 帧循环）。</summary>
     internal int CurrentFrame => _frame;
     private int _frame;
 

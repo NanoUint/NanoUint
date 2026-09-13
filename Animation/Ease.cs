@@ -3,13 +3,13 @@ using System.Runtime.CompilerServices;
 
 namespace NanoUint;
 
-/// <summary>缓动函数库。所有函数接收归一化时间 t ∈ [0,1]，返回缓动后的值 ∈ [0,1]。</summary>
+/// <summary>Easing function library.</summary>
 public static class Ease
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float Clamp01(float t) => t <= 0f ? 0f : t >= 1f ? 1f : t;
 
-    /// <summary>线性（无缓动）。</summary>
+    /// <summary>Linear: no easing.</summary>
     public static float Linear(float t) => Clamp01(t);
 
     #region Quad
@@ -81,9 +81,9 @@ public static class Ease
 
     #endregion
 
-    #region 便捷方法：区间映射
+    #region Convenience: Range Mapping
 
-    /// <summary>从 from 缓动到 to，返回缓动后的中间值。</summary>
+    /// <summary>Eases from one value to another and returns the interpolated result.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Lerp(float from, float to, float t, Func<float, float> easing)
     {

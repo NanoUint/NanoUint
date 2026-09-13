@@ -2,12 +2,12 @@ using System.Collections;
 
 namespace NanoUint;
 
-/// <summary>带协程支持的组件基类。游戏逻辑脚本应继承此类。</summary>
+/// <summary>Component base class with coroutine support.</summary>
 public abstract class Behaviour : Component
 {
     private readonly List<Coroutine> _coroutines = new();
 
-    /// <summary>启动一个协程。</summary>
+    /// <summary>Starts a coroutine.</summary>
     protected Coroutine StartCoroutine(IEnumerator routine)
     {
         var coroutine = CoroutineScheduler.Instance.Start(routine, this);
@@ -15,14 +15,14 @@ public abstract class Behaviour : Component
         return coroutine;
     }
 
-    /// <summary>停止一个协程。</summary>
+    /// <summary>Stops a coroutine.</summary>
     protected void StopCoroutine(Coroutine coroutine)
     {
         CoroutineScheduler.Instance.Stop(coroutine);
         _coroutines.Remove(coroutine);
     }
 
-    /// <summary>停止此 Behaviour 上的所有协程。</summary>
+    /// <summary>Stops all coroutines running on this Behaviour.</summary>
     protected void StopAllCoroutines()
     {
         foreach (var c in _coroutines.ToList())

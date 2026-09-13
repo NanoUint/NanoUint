@@ -4,7 +4,7 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>资源数据库。图片走 ResourceManager（内嵌程序集），音频/脚本走文件系统。</summary>
+/// <summary>Loads sprites, audio and script assets by logical path.</summary>
 public static class AssetDatabase
 {
     private static readonly List<string> _searchDirs = new();
@@ -18,13 +18,13 @@ public static class AssetDatabase
         "BGM", "SFX", "Voice", "Movies"
     };
 
-    /// <summary>注册搜索目录。通常在 IGameBootstrapper.OnStart 中调用。</summary>
+    /// <summary>Registers the assembly.</summary>
     public static void RegisterAssembly(System.Reflection.Assembly _)
     {
-        // 实际使用文件系统搜索
+        // Filesystem search is used in practice, so the assembly argument is ignored.
     }
 
-    /// <summary>添加搜索根目录。</summary>
+    /// <summary>Adds a search root directory.</summary>
     public static void AddSearchDirectory(string dir)
     {
         if (!_searchDirs.Contains(dir))
@@ -34,13 +34,12 @@ public static class AssetDatabase
         }
     }
 
-    /// <summary>自动探测并注册 Resources 目录。</summary>
+    /// <summary>Auto-detects and registers the Resources directory.</summary>
     public static void AutoDetect()
     {
         if (_initialized) return;
         _initialized = true;
 
-        // 搜索可执行文件附近的 Resources 目录
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var resourcesDir = Path.Combine(baseDir, "Resources");
 
@@ -50,7 +49,7 @@ public static class AssetDatabase
             Debug.Log($"AssetDatabase: found Resources at '{resourcesDir}'");
         }
 
-        // 向上搜索（开发环境：项目目录）
+        // Search upward for the project directory (development environment).
         TryAddProjectResources(baseDir);
     }
 
@@ -58,7 +57,6 @@ public static class AssetDatabase
     {
         try
         {
-            // 向上搜索最多 5 层，找 Resources 目录
             var dir = baseDir;
             for (int i = 0; i < 5; i++)
             {
@@ -77,17 +75,17 @@ public static class AssetDatabase
         catch (Exception ex) { Logger.Trace("AssetDatabase", $"Project dir scan skipped: {ex.Message}"); }
     }
 
-    /// <summary>清空资源缓存。</summary>
+    /// <summary>Clears the asset cache.</summary>
     public static void ClearCache()
     {
         _cache.Clear();
         ResourceManager.ClearCache();
     }
 
-    /// <summary>同步加载资源。找不到返回 null。</summary>
+    /// <summary>Loads an asset synchronously; returns null when not found.</summary>
     public static T? Load<T>(string path) where T : Asset => Load<T>(path, 0f);
 
-    /// <summary>同步加载资源，可指定 pixelsPerUnit（仅对 Sprite 有效，≤0 则用默认值 1920）。</summary>
+    /// <summary>Loads an asset synchronously with an optional pixelsPerUnit (Sprite only; values ≤0 use the default).</summary>
     public static T? Load<T>(string path, float pixelsPerUnit) where T : Asset
     {
         if (!_initialized) AutoDetect();
@@ -95,7 +93,6 @@ public static class AssetDatabase
         var cacheKey = typeof(T) == typeof(Sprite) && pixelsPerUnit > 0
             ? $"{path}|ppu={pixelsPerUnit}" : path;
 
-        // 查缓存
         if (_cache.TryGetValue(cacheKey, out var cached) && cached is T t)
             return t;
 
@@ -121,14 +118,14 @@ public static class AssetDatabase
         }
     }
 
-    /// <summary>检查资源是否存在。</summary>
+    /// <summary>Checks whether an asset exists.</summary>
     public static bool Exists(string path)
     {
         if (!_initialized) AutoDetect();
         return ResolvePath(path) is string fp && File.Exists(fp);
     }
 
-    /// <summary>打开资源文件流。</summary>
+    /// <summary>Opens a stream over the asset file.</summary>
     public static Stream? OpenStream(string path)
     {
         if (!_initialized) AutoDetect();
@@ -138,7 +135,7 @@ public static class AssetDatabase
         return null;
     }
 
-    /// <summary>从 Base64 编码的图片数据创建 Sprite（用于存档缩略图等）。</summary>
+    /// <summary>Creates a Sprite from Base64-encoded image data.</summary>
     public static Sprite? CreateSpriteFromBase64(string base64, string syntheticKey)
     {
         try
@@ -161,23 +158,21 @@ public static class AssetDatabase
         }
     }
 
-    /// <summary>获取资源的完整文件路径。</summary>
+    /// <summary>Gets the full file path of an asset.</summary>
     public static string? GetFullPath(string path)
     {
         if (!_initialized) AutoDetect();
         return ResolvePath(path);
     }
 
-    #region 路径解析
+    #region Path Resolution
 
-    /// <summary>解析资源路径到实际文件系统路径（精确路径 → 根目录 → 各子文件夹）。</summary>
+    /// <summary>Resolves an asset path to a real filesystem path.</summary>
     public static string? ResolvePath(string path)
     {
-        // 绝对路径或已存在的文件：直接返回
         if (Path.IsPathRooted(path) && File.Exists(path))
             return path;
 
-        // 提取纯文件名
         var fileName = Path.GetFileName(path);
         if (fileName == path && path.Contains('.'))
         {
@@ -188,7 +183,7 @@ public static class AssetDatabase
 
         foreach (var baseDir in _searchDirs)
         {
-            // 1. 精确匹配（完整路径拼接）
+            // 1. Exact match (full concatenated path).
             var exact = Path.Combine(baseDir, path);
             if (File.Exists(exact))
             {
@@ -196,7 +191,7 @@ public static class AssetDatabase
                 if (IsPathSafe(resolved)) return resolved;
             }
 
-            // 2. 根目录文件名
+            // 2. File name directly under the root.
             var rootCandidate = Path.Combine(baseDir, fileName);
             if (File.Exists(rootCandidate))
             {
@@ -204,7 +199,7 @@ public static class AssetDatabase
                 if (IsPathSafe(resolved)) return resolved;
             }
 
-            // 3. 各子文件夹中查找
+            // 3. Search each subfolder.
             foreach (var folder in SearchFolders)
             {
                 if (string.IsNullOrEmpty(folder)) continue;
@@ -220,7 +215,6 @@ public static class AssetDatabase
         return null;
     }
 
-    /// <summary>验证解析后的路径仍在允许的搜索根目录内。</summary>
     private static bool IsPathSafe(string resolvedPath)
     {
         foreach (var baseDir in _searchDirs)
@@ -236,9 +230,8 @@ public static class AssetDatabase
 
     #endregion
 
-    #region 资源构造
+    #region Asset Construction
 
-    /// <summary>从内嵌资源创建 Sprite。Path 存储逻辑路径（如 "Backgrounds/BG01A.png"）。</summary>
     private static Sprite LoadSprite(string logicalPath, float pixelsPerUnit = 0f)
     {
         if (!ResourceManager.Exists(logicalPath))
@@ -249,7 +242,6 @@ public static class AssetDatabase
         return new Sprite { Path = logicalPath, Name = name, ImageData = Array.Empty<byte>(), PixelsPerUnit = ppu };
     }
 
-    /// <summary>从文件系统加载音频。保持文件路径以便 NAudio 流式播放。</summary>
     private static AudioClip LoadAudio(string logicalPath)
     {
         var fullPath = ResolvePath(logicalPath);
@@ -260,7 +252,6 @@ public static class AssetDatabase
         return new AudioClip { Path = fullPath, Name = name, AudioData = Array.Empty<byte>() };
     }
 
-    /// <summary>从文件系统加载脚本文本。</summary>
     private static ScriptAsset LoadScript(string logicalPath)
     {
         var fullPath = ResolvePath(logicalPath);
@@ -273,15 +264,15 @@ public static class AssetDatabase
 
     #endregion
 
-    #region 预加载
+    #region Preloading
 
-    /// <summary>后台并行预加载所有内嵌图片资源。在 Splash 阶段调用。</summary>
+    /// <summary>Preloads all embedded image resources in parallel in the background.</summary>
     public static Task PreloadBitmapsAsync(IEnumerable<string> paths, IProgress<int>? progress = null)
     {
         return ResourceManager.PreloadAllAsync(progress);
     }
 
-    /// <summary>同步预热单张图片。</summary>
+    /// <summary>Warms up a single image synchronously.</summary>
     public static void PreloadImageSync(string logicalPath)
     {
         ResourceManager.WarmupSync(logicalPath);

@@ -3,14 +3,15 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Markup;
+using System.Windows.Shapes;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer 风格控件工厂。</summary>
 internal static class UEFactory
 {
 
-    #region 颜色工具
+    #region Color Utilities
 
     internal static Color Lighten(Color c, double factor)
     {
@@ -32,7 +33,6 @@ internal static class UEFactory
 
     #region Label
 
-    /// <summary>UE 风格文本标签。</summary>
     public static TextBlock Label(string text, double fontSize = 12,
         Color? foreground = null, FontStyle? fontStyle = null,
         FontWeight? weight = null, FontFamily? font = null,
@@ -55,7 +55,6 @@ internal static class UEFactory
 
     #region Button
 
-    /// <summary>UE 风格按钮: 方形、无圆角、hover 提亮 25%、pressed 变暗 20%、禁用 #404040。</summary>
     public static Button Button(string text, double width, double height, Color background,
         double fontSize = 12, Color? foreground = null, FontWeight? weight = null)
     {
@@ -78,7 +77,6 @@ internal static class UEFactory
         return btn;
     }
 
-    /// <summary>文本自动适应宽度的按钮(UnityExplorer 的自适应按钮)。</summary>
     public static Button ButtonAuto(string text, double height, Color background,
         double fontSize = 12, Color? foreground = null, double minWidth = 0,
         double horizontalPadding = 8)
@@ -125,7 +123,6 @@ internal static class UEFactory
 
     #region Input
 
-    /// <summary>UE 风格输入框: 深色、1px 边框、聚焦时边框提亮。</summary>
     public static TextBox Input(double width, double height, string text = "",
         Color? background = null, Color? border = null, double fontSize = 12,
         bool readOnly = false, bool acceptReturn = false)
@@ -179,9 +176,8 @@ internal static class UEFactory
 
     #endregion
 
-    #region Check (17x17 方形勾选框)
+    #region Check (17x17 square checkbox)
 
-    /// <summary>UE 风格方形勾选框。</summary>
     public static CheckBox Check(bool isChecked, Action<bool>? onChanged = null,
         Color? graphic = null, double size = 17)
     {
@@ -213,21 +209,25 @@ internal static class UEFactory
         box.SetValue(Border.SnapsToDevicePixelsProperty, true);
         grid.AppendChild(box);
 
-        var check = new FrameworkElementFactory(typeof(TextBlock));
+        // FrameworkElementFactory.AppendChild requires the PARENT type to implement IAddChild (the
+        // exception names the parent); child type is irrelevant. Grid/Border/StackPanel/TextBlock/AccessText/ScrollViewer do; Path/Image/ContentPresenter/Track/Thumb/ScrollBar do not.
+        var check = new FrameworkElementFactory(typeof(Path));
         check.Name = "check";
-        check.SetValue(TextBlock.TextProperty, "✓");
-        check.SetValue(TextBlock.ForegroundProperty, new TemplateBindingExtension(CheckBox.ForegroundProperty));
-        check.SetValue(TextBlock.FontSizeProperty, 11d);
-        check.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
-        check.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        check.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-        check.SetValue(TextBlock.VisibilityProperty, Visibility.Collapsed);
+        check.SetValue(Path.DataProperty, Geometry.Parse("M 1,7 L 6,12 L 15,3"));
+        check.SetValue(Path.StrokeProperty, new TemplateBindingExtension(CheckBox.ForegroundProperty));
+        check.SetValue(Path.StrokeThicknessProperty, 2d);
+        check.SetValue(Path.StrokeStartLineCapProperty, PenLineCap.Round);
+        check.SetValue(Path.StrokeEndLineCapProperty, PenLineCap.Round);
+        check.SetValue(Path.StrokeLineJoinProperty, PenLineJoin.Round);
+        check.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        check.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        check.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
         grid.AppendChild(check);
 
         var template = new ControlTemplate(typeof(CheckBox)) { VisualTree = grid };
 
         var checkedT = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
-        checkedT.Setters.Add(new Setter(TextBlock.VisibilityProperty, Visibility.Visible, "check"));
+        checkedT.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "check"));
         template.Triggers.Add(checkedT);
 
         var hoverT = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
@@ -254,9 +254,8 @@ internal static class UEFactory
 
     #endregion
 
-    #region 暗色滚动条
+    #region Dark Scrollbar
 
-    /// <summary>暗色细滚动条样式 (UnityExplorer uGUI scrollbar 风格)。</summary>
     public static Style ScrollbarStyle()
     {
         var style = new Style(typeof(ScrollBar));
@@ -276,45 +275,38 @@ internal static class UEFactory
 
     private static ControlTemplate CreateScrollBarTemplate(bool vertical)
     {
-        var root = new FrameworkElementFactory(typeof(Grid));
-        root.SetValue(Grid.BackgroundProperty, Brushes.Transparent);
-
-        var track = new FrameworkElementFactory(typeof(Track));
-        track.Name = "PART_Track";
-        track.SetValue(Track.IsDirectionReversedProperty, vertical);
-        track.SetValue(Track.OrientationProperty,
-            vertical ? Orientation.Vertical : Orientation.Horizontal);
-
-        // 隐藏的 RepeatButton(上下箭头区域透明)
-        var dec = new FrameworkElementFactory(typeof(RepeatButton));
-        dec.SetValue(RepeatButton.CommandProperty, ScrollBar.PageUpCommand);
-        dec.SetValue(UIElement.OpacityProperty, 0d);
-        dec.SetValue(UIElement.FocusableProperty, false);
-        var decT = new FrameworkElementFactory(typeof(Border));
-        decT.SetValue(Border.BackgroundProperty, Brushes.Transparent);
-        dec.SetValue(Control.TemplateProperty, new ControlTemplate(typeof(RepeatButton)) { VisualTree = decT });
-        track.AppendChild(dec); // DecreaseRepeatButton
-
-        var thumb = new FrameworkElementFactory(typeof(Thumb));
-        thumb.SetValue(Thumb.BackgroundProperty, new SolidColorBrush(UEPalette.ScopeUnselected));
-        thumb.SetValue(Thumb.BorderThicknessProperty, new Thickness(0));
-        thumb.SetValue(Thumb.IsTabStopProperty, false);
-        track.AppendChild(thumb); // Thumb
-
-        var inc = new FrameworkElementFactory(typeof(RepeatButton));
-        inc.SetValue(RepeatButton.CommandProperty, ScrollBar.PageDownCommand);
-        inc.SetValue(UIElement.OpacityProperty, 0d);
-        inc.SetValue(UIElement.FocusableProperty, false);
-        var incT = new FrameworkElementFactory(typeof(Border));
-        incT.SetValue(Border.BackgroundProperty, Brushes.Transparent);
-        inc.SetValue(Control.TemplateProperty, new ControlTemplate(typeof(RepeatButton)) { VisualTree = incT });
-        track.AppendChild(inc); // IncreaseRepeatButton
-
-        root.AppendChild(track);
-        return new ControlTemplate(typeof(ScrollBar)) { VisualTree = root };
+        // Track hosts several children but does not implement IAddChild, so its subtree cannot be
+        // built with FrameworkElementFactory; XamlReader.Parse is used instead, bypassing that restriction.
+        var thumb = UEPalette.ScopeUnselected;
+        var orientation = vertical ? "Vertical" : "Horizontal";
+        string xaml = $@"<ControlTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation""
+                                 xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
+                                 TargetType=""ScrollBar"">
+  <Grid Background=""Transparent"">
+    <Track x:Name=""PART_Track"" IsDirectionReversed=""{vertical}"" Orientation=""{orientation}"">
+      <Track.DecreaseRepeatButton>
+        <RepeatButton Command=""ScrollBar.PageUpCommand"" Opacity=""0"" Focusable=""False"">
+          <RepeatButton.Template>
+            <ControlTemplate TargetType=""RepeatButton""><Border Background=""Transparent""/></ControlTemplate>
+          </RepeatButton.Template>
+        </RepeatButton>
+      </Track.DecreaseRepeatButton>
+      <Track.Thumb>
+        <Thumb Background=""#{thumb.R:X2}{thumb.G:X2}{thumb.B:X2}"" BorderThickness=""0"" IsTabStop=""False""/>
+      </Track.Thumb>
+      <Track.IncreaseRepeatButton>
+        <RepeatButton Command=""ScrollBar.PageDownCommand"" Opacity=""0"" Focusable=""False"">
+          <RepeatButton.Template>
+            <ControlTemplate TargetType=""RepeatButton""><Border Background=""Transparent""/></ControlTemplate>
+          </RepeatButton.Template>
+        </RepeatButton>
+      </Track.IncreaseRepeatButton>
+    </Track>
+  </Grid>
+</ControlTemplate>";
+        return (ControlTemplate)XamlReader.Parse(xaml);
     }
 
-    /// <summary>把暗色滚动条样式应用到 ScrollViewer。</summary>
     public static void ApplyScrollbarStyle(ScrollViewer scroller)
     {
         scroller.Resources[typeof(ScrollBar)] = ScrollbarStyle();
@@ -322,9 +314,8 @@ internal static class UEFactory
 
     #endregion
 
-    #region 容器
+    #region Containers
 
-    /// <summary>UE 风格行容器(两列: 名称列 + 值列, UnityExplorer 成员行)。</summary>
     public static Grid Row(double leftWidth, bool nameRightAlign = false)
     {
         var grid = new Grid();

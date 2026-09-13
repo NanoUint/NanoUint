@@ -7,7 +7,6 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint.Debugging.UE;
 
-/// <summary>UnityExplorer InspectorPanel 1:1 复刻。</summary>
 internal sealed class InspectorPanel : UEPanel
 {
     private sealed class InspectorTab
@@ -24,7 +23,6 @@ internal sealed class InspectorPanel : UEPanel
     private readonly List<InspectorTab> _tabs = new();
     private InspectorTab? _activeTab;
 
-    /// <summary>Inspector 的 "Show in Explorer" 请求(由宿主接到 ObjectExplorer)。</summary>
     public event Action? ShowInExplorerRequested;
 
     public InspectorPanel(Canvas parentCanvas)
@@ -37,13 +35,13 @@ internal sealed class InspectorPanel : UEPanel
         MinPanelWidth = 810;
         MinPanelHeight = 350;
 
-        #region 标题栏右侧: Mouse Inspect 下拉 + Close All
+        #region Title-bar right: Mouse Inspect dropdown + Close All
         var mouseInspect = new UEDropdown(140, 25, 13)
         {
             Margin = new Thickness(0, 0, 4, 0),
         };
         mouseInspect.Items = new[] { "Mouse Inspect", "World", "UI" };
-        mouseInspect.SelectedIndex = 1; // World
+        mouseInspect.SelectedIndex = 1;
         mouseInspect.SelectionChanged += _ => Logger.Trace("UE", "Mouse Inspect mode changed");
         TitleRightControls.Children.Add(mouseInspect);
 
@@ -54,7 +52,7 @@ internal sealed class InspectorPanel : UEPanel
 
         #endregion
 
-        #region tab 条 + 视图区
+        #region Tab bar + view area
         var root = new Grid();
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -76,9 +74,8 @@ internal sealed class InspectorPanel : UEPanel
         #endregion
     }
 
-    #region 公开 API
+    #region Public API
 
-    /// <summary>查看 GameObject([G] tab)。</summary>
     public void Inspect(GameObject go)
     {
         if (go == null) return;
@@ -96,7 +93,6 @@ internal sealed class InspectorPanel : UEPanel
         if (!IsVisible) Show();
     }
 
-    /// <summary>查看 Component([R] 反射 tab)。</summary>
     public void InspectComponent(Component comp)
     {
         if (comp == null) return;
@@ -114,7 +110,6 @@ internal sealed class InspectorPanel : UEPanel
         if (!IsVisible) Show();
     }
 
-    /// <summary>关闭全部 tab 并隐藏面板 (Close All)。</summary>
     public void CloseAll()
     {
         foreach (var tab in _tabs.ToList())
@@ -124,7 +119,7 @@ internal sealed class InspectorPanel : UEPanel
 
     #endregion
 
-    #region tab 管理
+    #region Tab management
 
     private void AddTab(string label, object target, UIElement view)
     {
@@ -137,7 +132,6 @@ internal sealed class InspectorPanel : UEPanel
             CloseButton = null!,
         };
 
-        // 单元 200x22: 173px 按钮 + 25x25 X
         var cell = new Grid { Width = 200, Height = 22, Margin = new Thickness(2, 2, 2, 2) };
         cell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(173) });
         cell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
@@ -200,14 +194,12 @@ internal sealed class InspectorPanel : UEPanel
         }
     }
 
-    /// <summary>关闭当前激活 tab。</summary>
     public void CloseCurrentTab()
     {
         if (_activeTab != null)
             CloseTab(_activeTab);
     }
 
-    /// <summary>刷新当前 [G] 视图(对象改名/Instantiate 后)。</summary>
     public void RefreshActiveView()
     {
         if (_activeTab == null) return;
@@ -238,7 +230,6 @@ internal sealed class InspectorPanel : UEPanel
     #endregion
 }
 
-/// <summary>UnityExplorer GameObjectInfoPanel 复刻（[G] 视图）。</summary>
 internal sealed class GameObjectInfoPanel
 {
     private readonly GameObject _go;
@@ -298,7 +289,7 @@ internal sealed class GameObjectInfoPanel
 
         #endregion
 
-        #region Row 2: 类型标题 17px + NameInput 15px
+        #region Row 2: type title 17px + NameInput 15px
         var row2 = new Grid();
         row2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var typeTitle = UEFactory.Label("GameObject", 17, UEPalette.SigClass);
@@ -410,7 +401,7 @@ internal sealed class GameObjectInfoPanel
 
         #endregion
 
-        #region 分隔线 + 组件列表
+        #region Separator + component list
         root.Children.Add(UEFactory.Separator(UEPalette.InspectorBorder));
 
         foreach (var comp in _go.Components)
@@ -434,13 +425,11 @@ internal sealed class GameObjectInfoPanel
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
 
-        // 行为 toggle (半透明绿)
         var toggle = UEFactory.Check(comp.Enabled, v => comp.Enabled = v, UEPalette.BehaviourToggleGraphic);
         toggle.HorizontalAlignment = HorizontalAlignment.Center;
         toggle.VerticalAlignment = VerticalAlignment.Center;
         UEFactory.SetCell(toggle, grid, 0);
 
-        // 组件名 (签名着色)
         var nameLabel = UEFactory.Label(comp.GetType().Name, 12, UEPalette.SigClass);
         nameLabel.Margin = new Thickness(4, 0, 0, 0);
         if (!isTransform)
@@ -450,7 +439,6 @@ internal sealed class GameObjectInfoPanel
         }
         UEFactory.SetCell(nameLabel, grid, 1);
 
-        // Destroy X (Transform 无)
         if (!isTransform)
         {
             var xBtn = UEFactory.Button("✕", 25, 21, UEPalette.DestroyButton, 10, Colors.Red);

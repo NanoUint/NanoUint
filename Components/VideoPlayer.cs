@@ -2,7 +2,7 @@ using System.IO;
 
 namespace NanoUint;
 
-/// <summary>视频播放器组件。全屏播放视频。</summary>
+/// <summary>Video player component. Plays a video full-screen.</summary>
 public sealed class VideoPlayer : Component
 {
     private bool _isPlaying;
@@ -10,12 +10,12 @@ public sealed class VideoPlayer : Component
     public bool IsPlaying => _isPlaying;
     public event Action? OnFinished;
 
-    /// <summary>播放指定路径的视频。</summary>
+    /// <summary>Plays the video at the given path.</summary>
     public void Play(string resourcePath)
     {
         _isPlaying = true;
 
-        // 从嵌入资源导出到临时文件
+        // Extract the embedded resource to a temp file
         var tmpFile = ExtractToTemp(resourcePath);
         if (tmpFile == null)
         {

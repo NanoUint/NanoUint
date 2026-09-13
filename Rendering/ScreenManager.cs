@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>画面管理器。控制分辨率、全屏、VSync 等。</summary>
+/// <summary>Screen manager. Controls resolution, fullscreen, VSync, and related display settings.</summary>
 public static class ScreenManager
 {
     private static int _width = 1280;
@@ -12,12 +12,20 @@ public static class ScreenManager
     public static int Width
     {
         get => _width;
-        set { _width = Math.Max(800, value); ApplyResolution(); }
+        set { _width = Math.Max(1, value); ApplyResolution(); }
     }
     public static int Height
     {
         get => _height;
-        set { _height = Math.Max(600, value); ApplyResolution(); }
+        set { _height = Math.Max(1, value); ApplyResolution(); }
+    }
+
+    /// <summary>Sets the resolution in one call and applies it to the window's client area.</summary>
+    public static void SetResolution(int width, int height)
+    {
+        _width = Math.Max(1, width);
+        _height = Math.Max(1, height);
+        ApplyResolution();
     }
     public static bool IsFullscreen
     {

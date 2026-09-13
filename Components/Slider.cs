@@ -1,6 +1,6 @@
 namespace NanoUint;
 
-/// <summary>滑动条控件。用于设置面板的音量/速度等连续值调节。</summary>
+/// <summary>Slider control for continuous values such as volume or speed.</summary>
 public sealed class Slider : Behaviour
 {
     private string _label = "";
@@ -9,14 +9,14 @@ public sealed class Slider : Behaviour
     private float _maxValue = 1f;
     private float _step = 0.05f;
 
-    /// <summary>滑块标签（显示在滑块前）。</summary>
+    /// <summary>Slider label, shown before the slider.</summary>
     public string Label
     {
         get => _label;
         set { if (_label != value) { _label = value; MarkDirty(); } }
     }
 
-    /// <summary>当前值 [MinValue, MaxValue]。</summary>
+    /// <summary>Current value, clamped to [MinValue, MaxValue].</summary>
     public float Value
     {
         get => _value;
@@ -32,40 +32,40 @@ public sealed class Slider : Behaviour
         }
     }
 
-    /// <summary>最小值。</summary>
+    /// <summary>Minimum value.</summary>
     public float MinValue
     {
         get => _minValue;
         set { _minValue = value; if (_value < _minValue) Value = _minValue; }
     }
 
-    /// <summary>最大值。</summary>
+    /// <summary>Maximum value.</summary>
     public float MaxValue
     {
         get => _maxValue;
         set { _maxValue = value; if (_value > _maxValue) Value = _maxValue; }
     }
 
-    /// <summary>步进值（键盘微调）。</summary>
+    /// <summary>Step size for keyboard adjustment.</summary>
     public float Step
     {
         get => _step;
         set => _step = value;
     }
 
-    /// <summary>值变更事件。</summary>
+    /// <summary>Raised when the value changes.</summary>
     public event Action<float>? OnValueChanged;
 
     private string? _valueTextOverride;
 
-    /// <summary>可选的值显示文本覆盖（null 则自动计算百分比）。</summary>
+    /// <summary>Optional override for the value text (null = compute the percentage automatically).</summary>
     public string? ValueTextOverride
     {
         get => _valueTextOverride;
         set { if (_valueTextOverride != value) { _valueTextOverride = value; MarkDirty(); } }
     }
 
-    /// <summary>获取百分比形式的显示文本。</summary>
+    /// <summary>Gets the display text, as a percentage.</summary>
     public string ValueText
     {
         get

@@ -3,13 +3,13 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>多语言管理器。支持通过字符串 key 获取翻译文本。</summary>
+/// <summary>Fetches translated text by string key.</summary>
 public static class LocalizationManager
 {
     private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _locales = new();
     private static string _currentLanguage = "zh-CN";
 
-    /// <summary>当前使用的语言代码（如 "zh-CN", "en-US", "ja-JP"）。</summary>
+    /// <summary>Currently active language code (e.g. "zh-CN", "en-US", "ja-JP").</summary>
     public static string CurrentLanguage
     {
         get => _currentLanguage;
@@ -25,20 +25,20 @@ public static class LocalizationManager
         }
     }
 
-    /// <summary>支持的语言列表。</summary>
+    /// <summary>List of supported languages.</summary>
     public static string[] SupportedLanguages => _locales.Keys.ToArray();
 
-    /// <summary>语言切换时触发。</summary>
+    /// <summary>Raised when the language changes.</summary>
     public static event Action<string>? OnLanguageChanged;
 
-    /// <summary>注册一个语言的数据字典。</summary>
+    /// <summary>Registers a language's string dictionary.</summary>
     public static void RegisterLocale(string langCode, Dictionary<string, string> strings)
     {
         _locales[langCode] = new ConcurrentDictionary<string, string>(strings);
         Debug.Log($"Locale registered: {langCode} ({strings.Count} strings)");
     }
 
-    /// <summary>获取翻译文本。</summary>
+    /// <summary>Gets translated text.</summary>
     public static string Get(string key)
     {
         if (_locales.TryGetValue(_currentLanguage, out var dict) &&
@@ -46,10 +46,10 @@ public static class LocalizationManager
             return value;
 
         Debug.LogWarning($"Localization key not found: '{key}' for language '{_currentLanguage}'");
-        return key; // 退回原始 key
+        return key; // Fall back to the raw key.
     }
 
-    /// <summary>获取格式化翻译文本。</summary>
+    /// <summary>Gets formatted translated text.</summary>
     public static string Get(string key, params object[] args)
     {
         var template = Get(key);
@@ -57,10 +57,10 @@ public static class LocalizationManager
         catch (FormatException ex) { Logger.Warning("Localization", $"Format failed key='{key}' args={args.Length}: {ex.Message}"); return template; }
     }
 
-    /// <summary>加载引擎内嵌的默认多语言数据。</summary>
+    /// <summary>Loads the engine's embedded default localization data.</summary>
     public static void LoadEmbeddedLocales()
     {
-        // 简体中文
+        // Simplified Chinese
         RegisterLocale("zh-CN", new Dictionary<string, string>
         {
             ["Menu.NewGame"] = "新游戏",
@@ -158,7 +158,7 @@ public static class LocalizationManager
             ["Game.Load"] = "Load",
         });
 
-        // 日本語
+        // Japanese
         RegisterLocale("ja-JP", new Dictionary<string, string>
         {
             ["Menu.NewGame"] = "はじめから",

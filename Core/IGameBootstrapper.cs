@@ -1,8 +1,8 @@
 namespace NanoUint;
 
-/// <summary>游戏启动引导器。游戏项目实现此接口并传入 Application.Run()。</summary>
+/// <summary>Game bootstrapper interface passed to Application.Run().</summary>
 public interface IGameBootstrapper
 {
-    /// <summary>引擎启动后调用。在此方法中创建初始场景和所有 GameObject。</summary>
+    /// <summary>Called after the engine starts to create the initial scene.</summary>
     void OnStart(Scene mainScene);
 }

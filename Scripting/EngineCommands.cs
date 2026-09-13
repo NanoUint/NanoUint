@@ -3,14 +3,14 @@ using NanoUint.Drawing;
 
 namespace NanoUint.Scripting;
 
-/// <summary>引擎内置脚本命令。提供背景、立绘、音频、视频操作，以及对白/旁白。</summary>
+/// <summary>Engine script commands covering dialogue, visuals, audio, and video.</summary>
 public class EngineCommands
 {
     private static readonly string[] PositionNames = { "left", "center", "right", "offscreenleft", "offscreenright" };
 
-    #region 对白 / 旁白
+    #region Dialogue / narration
 
-    /// <summary>@say("speaker", "text") — 显示角色对白并暂停脚本等待点击推进。</summary>
+    /// <summary>@say("speaker", "text") — shows character dialogue and pauses the script for a click to advance.</summary>
     [RegistryInScript("say")]
     public void Say(ScriptCommandContext ctx)
     {
@@ -18,12 +18,12 @@ public class EngineCommands
         var text = ctx.Arg<string>(1) ?? "";
         if (string.IsNullOrEmpty(text)) return;
 
-        // 触发对白事件（ScriptManager → GameScreen.OnDialogue）
+        // Raises the dialogue event (ScriptManager → GameScreen.OnDialogue)
         ctx.Engine.RaiseText(speaker, text);
         ctx.Engine.RequestPause();
     }
 
-    /// <summary>@narration("text") — 显示旁白文本并暂停脚本等待点击推进。</summary>
+    /// <summary>@narration("text") — shows narration text and pauses the script for a click to advance.</summary>
     [RegistryInScript("narration")]
     public void Narration(ScriptCommandContext ctx)
     {
@@ -36,7 +36,7 @@ public class EngineCommands
 
     #endregion
 
-    #region 背景
+    #region Background
 
     [RegistryInScript("bg")]
     public void SetBackground(ScriptCommandContext ctx)
@@ -62,7 +62,7 @@ public class EngineCommands
 
     #endregion
 
-    #region 角色立绘
+    #region Character sprites
 
     [RegistryInScript("sprite")]
     public void ShowSprite(ScriptCommandContext ctx)
@@ -121,7 +121,7 @@ public class EngineCommands
 
     #endregion
 
-    #region 音频 — 直接调用 AudioManager
+    #region Audio — calls AudioManager directly
 
     [RegistryInScript("bgm")]
     public void PlayBGM(ScriptCommandContext ctx)
@@ -147,8 +147,8 @@ public class EngineCommands
         var path = ctx.Arg<string>(0) ?? "";
         if (string.IsNullOrEmpty(path)) return;
         AudioManager.PlayVoice(path);
-        // 不暂停：让脚本继续到 @say，由 @say 暂停
-        // Voice 会在 ScriptManager.Continue() 时自动停止
+        // No pause: let the script continue to @say, which pauses
+        // Voice stops automatically at ScriptManager.Continue()
     }
 
     [RegistryInScript("volume")]
@@ -165,7 +165,7 @@ public class EngineCommands
 
     #endregion
 
-    #region 视频
+    #region Video
 
     [RegistryInScript("movie")]
     public void PlayMovie(ScriptCommandContext ctx)

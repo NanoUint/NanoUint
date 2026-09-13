@@ -2,39 +2,38 @@ using NanoUint.Diagnostics;
 
 namespace NanoUint;
 
-/// <summary>场景中所有对象的容器。行为通过挂载 Component 来组合。</summary>
+/// <summary>Scene object that components can be attached to.</summary>
 public sealed class GameObject
 {
     private readonly List<Component> _components = new();
     private readonly Dictionary<Type, List<Component>> _componentCache = new();
     private bool _started;
 
-    /// <summary>对象名称（用于调试和查找）。</summary>
+    /// <summary>Object name.</summary>
     public string Name { get; set; }
 
-    /// <summary>是否处于激活状态。非激活的对象及其组件不会收到 Update。</summary>
+    /// <summary>Whether this object is active.</summary>
     public bool ActiveSelf { get; set; } = true;
 
-    /// <summary>此对象所属的场景。</summary>
+    /// <summary>The scene this object belongs to.</summary>
     public Scene? Scene { get; internal set; }
 
-    /// <summary>每个 GameObject 必定拥有的 Transform 组件。</summary>
+    /// <summary>The Transform component every GameObject is guaranteed to have.</summary>
     public Transform Transform { get; }
 
-    /// <summary>此对象上的所有组件（只读）。</summary>
+    /// <summary>All components on this object (read-only).</summary>
     public IReadOnlyList<Component> Components => _components;
 
-    /// <summary>标记所有非 Transform 组件为脏（Transform 属性变更时由 Transform 调用）。</summary>
     internal void MarkComponentsDirty()
     {
-        foreach (var comp in _components)
+        foreach (var comp in _components.ToList())
         {
             if (comp.GetType() != typeof(Transform))
                 comp.MarkDirty();
         }
     }
 
-    /// <summary>对象是否已被销毁。</summary>
+    /// <summary>Whether this object has been destroyed.</summary>
     public bool IsDestroyed { get; private set; }
 
     public GameObject(string name = "GameObject")
@@ -43,9 +42,9 @@ public sealed class GameObject
         Transform = AddComponent<Transform>();
     }
 
-    #region 组件管理
+    #region Component management
 
-    /// <summary>添加一个组件并返回它。</summary>
+    /// <summary>Adds a component and returns it.</summary>
     public T AddComponent<T>() where T : Component, new()
     {
         if (IsDestroyed)
@@ -77,7 +76,7 @@ public sealed class GameObject
         return comp;
     }
 
-    /// <summary>获取第一个指定类型的组件。若不存在则返回 null。</summary>
+    /// <summary>Gets the first component of the given type, or null if none exists.</summary>
     public T? GetComponent<T>() where T : Component
     {
         if (_componentCache.TryGetValue(typeof(T), out var list) && list.Count > 0)
@@ -85,14 +84,14 @@ public sealed class GameObject
         return null;
     }
 
-    /// <summary>尝试获取第一个指定类型的组件。</summary>
+    /// <summary>Tries to get the first component of the given type.</summary>
     public bool TryGetComponent<T>(out T? result) where T : Component
     {
         result = GetComponent<T>();
         return result != null;
     }
 
-    /// <summary>获取所有指定类型的组件。</summary>
+    /// <summary>Gets all components of the given type.</summary>
     public IReadOnlyList<T> GetComponents<T>() where T : Component
     {
         if (_componentCache.TryGetValue(typeof(T), out var list))
@@ -100,7 +99,7 @@ public sealed class GameObject
         return Array.Empty<T>();
     }
 
-    /// <summary>移除一个组件（标记销毁，下一帧清理）。</summary>
+    /// <summary>Removes a component and destroys it.</summary>
     public void RemoveComponent(Component component)
     {
         if (component == Transform)
@@ -112,7 +111,7 @@ public sealed class GameObject
         component.Destroy();
     }
 
-    /// <summary>销毁此 GameObject 及其所有组件。</summary>
+    /// <summary>Destroys this GameObject and all of its components.</summary>
     public void Destroy()
     {
         if (IsDestroyed) return;
@@ -125,12 +124,12 @@ public sealed class GameObject
 
     #endregion
 
-    #region 内部
+    #region Internals
 
     internal void NotifyAdded(Scene scene)
     {
         Scene = scene;
-        foreach (var comp in _components)
+        foreach (var comp in _components.ToList())
             comp.Awake();
     }
 
@@ -138,7 +137,7 @@ public sealed class GameObject
     {
         if (_started) return;
         _started = true;
-        foreach (var comp in _components)
+        foreach (var comp in _components.ToList())
         {
             if (comp.Enabled && !comp.IsDestroyed)
                 comp.Start();
@@ -149,7 +148,7 @@ public sealed class GameObject
     {
         if (!ActiveSelf || IsDestroyed) return;
         NotifyStart();
-        foreach (var comp in _components)
+        foreach (var comp in _components.ToList())
         {
             if (comp.Enabled && !comp.IsDestroyed)
                 comp.Update(deltaTime);
@@ -160,12 +159,12 @@ public sealed class GameObject
 
     #endregion
 
-    #region Instantiate（模板克隆）
+    #region Instantiate (template cloning)
 
-    /// <summary>深拷贝一个 GameObject 及其所有组件到目标场景。</summary>
-    /// <param name="original">原始对象（不会被修改）。</param>
-    /// <param name="targetScene">目标场景。null 则使用 origin 的场景。</param>
-    /// <param name="newName">克隆后的名称。null 则自动加 "(Clone)" 后缀。</param>
+    /// <summary>Deep-copies a GameObject and all of its components into a target scene.</summary>
+    /// <param name="original">Source object (not modified).</param>
+    /// <param name="targetScene">Target scene; null uses the origin's scene.</param>
+    /// <param name="newName">Clone name; null appends a "(Clone)" suffix automatically.</param>
     public static GameObject Instantiate(GameObject original, Scene? targetScene = null, string? newName = null)
     {
         if (original.IsDestroyed)
@@ -211,7 +210,6 @@ public sealed class GameObject
         return clone;
     }
 
-    /// <summary>添加一个已构造好的组件到 GameObject。</summary>
     private static void AddComponentToGO(GameObject go, Component comp)
     {
         comp.GameObject = go;
