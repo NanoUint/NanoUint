@@ -18,8 +18,10 @@ public sealed class GameObject
     /// <summary>The scene this object belongs to.</summary>
     public Scene? Scene { get; internal set; }
 
-    /// <summary>The Transform component every GameObject is guaranteed to have.</summary>
-    public Transform Transform { get; }
+    /// <summary>The Transform component every GameObject is guaranteed to have.
+    /// Returns the actual Transform (or RectTransform) currently on this object.</summary>
+    public Transform Transform => GetComponent<Transform>()
+        ?? throw new InvalidOperationException($"GameObject '{Name}' has no Transform.");
 
     /// <summary>All components on this object (read-only).</summary>
     public IReadOnlyList<Component> Components => _components;
@@ -39,7 +41,7 @@ public sealed class GameObject
     public GameObject(string name = "GameObject")
     {
         Name = name;
-        Transform = AddComponent<Transform>();
+        AddComponent<Transform>();
     }
 
     #region Component management

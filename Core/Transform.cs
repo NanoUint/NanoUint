@@ -19,10 +19,14 @@ public class Transform : Component
     /// <summary>All direct children Transforms.</summary>
     public IReadOnlyList<Transform> Children => _children;
 
-    /// <summary>Sets the parent; passing null detaches the object into a root.</summary>
+    /// <summary>Sets the parent; passing null detaches the object into a root.
+    /// Throws if the assignment would create a cycle (parent is self or a descendant).</summary>
     public void SetParent(Transform? parent)
     {
         if (_parent == parent) return;
+        if (parent != null && parent.IsDescendantOf(this))
+            throw new InvalidOperationException(
+                $"Cannot set parent: {parent.GameObject?.Name ?? "?"} is a descendant of {GameObject?.Name ?? "?"}");
         if (_parent != null)
             _parent._children.Remove(this);
         if (parent != null)
@@ -30,8 +34,19 @@ public class Transform : Component
         _parent = parent;
         MarkDirty();
         GameObject?.MarkComponentsDirty();
-        // Mark all descendants dirty too (their world position changed)
         MarkDescendantsDirty();
+    }
+
+    /// <summary>Returns true if this transform is a descendant of the given ancestor.</summary>
+    public bool IsDescendantOf(Transform ancestor)
+    {
+        var current = _parent;
+        while (current != null)
+        {
+            if (current == ancestor) return true;
+            current = current._parent;
+        }
+        return false;
     }
 
     /// <summary>World position.</summary>
