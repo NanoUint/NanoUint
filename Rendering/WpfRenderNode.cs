@@ -31,7 +31,8 @@ public abstract class WpfRenderNode : IRenderNode
 
     public virtual void SetSorting(SortingKey key)
     {
-        Canvas.SetZIndex(Element, key.SortingOrder);
+        // Use OrderInLayer for WPF ZIndex; SortingLayer is conceptual for now
+        Canvas.SetZIndex(Element, key.OrderInLayer);
     }
 
     public void Dispose()

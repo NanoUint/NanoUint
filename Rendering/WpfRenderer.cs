@@ -190,7 +190,13 @@ internal sealed class WpfRenderer
         var transform = comp.GameObject?.Transform;
         if (transform == null) return true;
 
-        Canvas.SetZIndex(element, transform.SortingOrder);
+        var key = new SortingKey
+        {
+            SortingLayer = transform.SortingLayer,
+            OrderInLayer = transform.OrderInLayer,
+            Z = transform.SortingOrder
+        };
+        Canvas.SetZIndex(element, key.CompareTo(new SortingKey { Z = 1000 }) > 0 ? 999 : 0);
 
         bool typeUpdateOk = true;
 
@@ -202,7 +208,6 @@ internal sealed class WpfRenderer
                 ps.RenderCanvasH = _effectiveHeight;
             }
             node.Sync(comp);
-            var key = new SortingKey { SortingOrder = transform.SortingOrder };
             node.SetSorting(key);
         }
 

@@ -8,6 +8,8 @@ public class Transform : Component
     private Vector3 _position;
     private float _opacity = 1f;
     private bool _flipX;
+    private int _sortingLayer;
+    private int _orderInLayer;
     private Transform? _parent;
     private readonly List<Transform> _children = new();
 
@@ -102,6 +104,20 @@ public class Transform : Component
             if ((int)_position.Z != value)
                 Position = new Vector3(_position.X, _position.Y, value);
         }
+    }
+
+    /// <summary>Sorting layer (lower renders first). Default 0.</summary>
+    public int SortingLayer
+    {
+        get => _sortingLayer;
+        set { if (_sortingLayer != value) { _sortingLayer = value; MarkDirty(); GameObject?.MarkComponentsDirty(); } }
+    }
+
+    /// <summary>Order within the sorting layer (higher renders in front). Default 0.</summary>
+    public int OrderInLayer
+    {
+        get => _orderInLayer;
+        set { if (_orderInLayer != value) { _orderInLayer = value; MarkDirty(); GameObject?.MarkComponentsDirty(); } }
     }
 
     private void MarkDescendantsDirty()
