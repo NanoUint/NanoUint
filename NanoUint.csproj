@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="NanoUint.Tests" />
+    <InternalsVisibleTo Include="NanoUintVN" />
+    <InternalsVisibleTo Include="NanoUintVN.Tests" />
   </ItemGroup>
 
   <ItemGroup>
