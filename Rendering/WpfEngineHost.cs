@@ -435,6 +435,9 @@ internal sealed class WpfEngineHost
             while (_accumulator >= FixedDt)
             {
                 _mainScene.Update((float)FixedDt);
+                var physics = Application.Default?.Physics;
+                if (physics != null && physics.Enabled)
+                    physics.StepWithInterpolation((float)FixedDt, (float)(_accumulator / FixedDt));
                 _accumulator -= FixedDt;
             }
 

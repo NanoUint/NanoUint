@@ -14,6 +14,7 @@ public sealed class EngineContext
     public IDispatcher Dispatcher { get; set; } = null!;
     public ISystemServices System { get; set; } = null!;
     public RendererRegistry Renderers { get; set; } = null!;
+    public Physics.PhysicsSystem? Physics { get; set; }
 
     public EngineContext()
     {
