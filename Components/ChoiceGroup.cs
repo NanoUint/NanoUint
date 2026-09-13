@@ -1,6 +1,7 @@
 namespace NanoUint;
 
 /// <summary>Displays multiple choice buttons.</summary>
+[Obsolete("Use NanoUintVN.Components.ChoiceGroup instead.")]
 public sealed class ChoiceGroup : Component
 {
     private string[] _choiceTexts = Array.Empty<string>();

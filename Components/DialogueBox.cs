@@ -4,6 +4,7 @@ using NanoUint.Drawing;
 namespace NanoUint;
 
 /// <summary>Dialogue box component with a progressive text reveal effect.</summary>
+[Obsolete("Use NanoUintVN.Components.DialogueBox instead.")]
 public sealed class DialogueBox : Component
 {
     private string _speakerName = "";

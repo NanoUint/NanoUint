@@ -3,6 +3,7 @@ using NanoUint.Drawing;
 namespace NanoUint;
 
 /// <summary>Full-screen solid-color overlay for transition effects.</summary>
+[Obsolete("Use NanoUintVN.Components.FlashOverlay instead.")]
 public sealed class FlashOverlay : Component
 {
     private Color _color = Color.Black;

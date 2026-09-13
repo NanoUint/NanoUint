@@ -1,6 +1,7 @@
 namespace NanoUint;
 
 /// <summary>Displays a full-screen background with crossfade support.</summary>
+[Obsolete("Use NanoUintVN.Components.BackgroundRenderer instead.")]
 public sealed class BackgroundRenderer : Component
 {
     private Sprite? _sprite;

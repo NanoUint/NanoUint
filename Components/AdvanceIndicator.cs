@@ -3,6 +3,7 @@ using System.Collections;
 namespace NanoUint;
 
 /// <summary>Continue indicator that prompts the player to press Enter.</summary>
+[Obsolete("Use NanoUintVN.Components.AdvanceIndicator instead.")]
 public sealed class AdvanceIndicator : Behaviour
 {
     private bool _visible;

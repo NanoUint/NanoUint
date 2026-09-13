@@ -7,6 +7,7 @@ namespace NanoUint;
 public sealed record BacklogEntry(string SpeakerName, string Text, string? VoicePath);
 
 /// <summary>Dialogue backlog view that records all dialogue and replays a line's voice when clicked.</summary>
+[Obsolete("Use NanoUintVN.Components.BacklogView instead.")]
 public sealed class BacklogView : Behaviour
 {
     private readonly List<BacklogEntry> _entries = new();
