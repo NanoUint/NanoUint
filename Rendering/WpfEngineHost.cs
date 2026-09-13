@@ -217,8 +217,10 @@ internal sealed class WpfEngineHost
     {
         Logger.Trace("Input", $"KeyDown: {e.Key}");
 
+        var engineKey = ConvertKey(e.Key);
+
         #region Let the Active Screen Handle Keys First
-        if (InputManager.KeyDispatch?.Invoke(e.Key) == true)
+        if (InputManager.KeyDispatch?.Invoke(engineKey) == true)
             return;
 
         switch (e.Key)
@@ -625,5 +627,49 @@ internal sealed class WpfEngineHost
             Logger.Warning("WPF", $"Font loading failed: {ex.Message}. Using Segoe UI.");
         }
     }
+    #endregion
+
+    #region Key conversion (WPF → engine-neutral)
+
+    private static EngineKey ConvertKey(System.Windows.Input.Key key) => key switch
+    {
+        System.Windows.Input.Key.A => EngineKey.A, System.Windows.Input.Key.B => EngineKey.B,
+        System.Windows.Input.Key.C => EngineKey.C, System.Windows.Input.Key.D => EngineKey.D,
+        System.Windows.Input.Key.E => EngineKey.E, System.Windows.Input.Key.F => EngineKey.F,
+        System.Windows.Input.Key.G => EngineKey.G, System.Windows.Input.Key.H => EngineKey.H,
+        System.Windows.Input.Key.I => EngineKey.I, System.Windows.Input.Key.J => EngineKey.J,
+        System.Windows.Input.Key.K => EngineKey.K, System.Windows.Input.Key.L => EngineKey.L,
+        System.Windows.Input.Key.M => EngineKey.M, System.Windows.Input.Key.N => EngineKey.N,
+        System.Windows.Input.Key.O => EngineKey.O, System.Windows.Input.Key.P => EngineKey.P,
+        System.Windows.Input.Key.Q => EngineKey.Q, System.Windows.Input.Key.R => EngineKey.R,
+        System.Windows.Input.Key.S => EngineKey.S, System.Windows.Input.Key.T => EngineKey.T,
+        System.Windows.Input.Key.U => EngineKey.U, System.Windows.Input.Key.V => EngineKey.V,
+        System.Windows.Input.Key.W => EngineKey.W, System.Windows.Input.Key.X => EngineKey.X,
+        System.Windows.Input.Key.Y => EngineKey.Y, System.Windows.Input.Key.Z => EngineKey.Z,
+        System.Windows.Input.Key.D0 => EngineKey.D0, System.Windows.Input.Key.D1 => EngineKey.D1,
+        System.Windows.Input.Key.D2 => EngineKey.D2, System.Windows.Input.Key.D3 => EngineKey.D3,
+        System.Windows.Input.Key.D4 => EngineKey.D4, System.Windows.Input.Key.D5 => EngineKey.D5,
+        System.Windows.Input.Key.D6 => EngineKey.D6, System.Windows.Input.Key.D7 => EngineKey.D7,
+        System.Windows.Input.Key.D8 => EngineKey.D8, System.Windows.Input.Key.D9 => EngineKey.D9,
+        System.Windows.Input.Key.Left => EngineKey.Left, System.Windows.Input.Key.Right => EngineKey.Right,
+        System.Windows.Input.Key.Up => EngineKey.Up, System.Windows.Input.Key.Down => EngineKey.Down,
+        System.Windows.Input.Key.PageUp => EngineKey.PageUp, System.Windows.Input.Key.PageDown => EngineKey.PageDown,
+        System.Windows.Input.Key.Home => EngineKey.Home, System.Windows.Input.Key.End => EngineKey.End,
+        System.Windows.Input.Key.Space => EngineKey.Space, System.Windows.Input.Key.Enter => EngineKey.Enter,
+        System.Windows.Input.Key.Escape => EngineKey.Escape, System.Windows.Input.Key.Tab => EngineKey.Tab,
+        System.Windows.Input.Key.Back => EngineKey.Backspace, System.Windows.Input.Key.Delete => EngineKey.Delete,
+        System.Windows.Input.Key.Insert => EngineKey.Insert,
+        System.Windows.Input.Key.LeftShift => EngineKey.LeftShift, System.Windows.Input.Key.RightShift => EngineKey.RightShift,
+        System.Windows.Input.Key.LeftCtrl => EngineKey.LeftCtrl, System.Windows.Input.Key.RightCtrl => EngineKey.RightCtrl,
+        System.Windows.Input.Key.LeftAlt => EngineKey.LeftAlt, System.Windows.Input.Key.RightAlt => EngineKey.RightAlt,
+        System.Windows.Input.Key.F1 => EngineKey.F1, System.Windows.Input.Key.F2 => EngineKey.F2,
+        System.Windows.Input.Key.F3 => EngineKey.F3, System.Windows.Input.Key.F4 => EngineKey.F4,
+        System.Windows.Input.Key.F5 => EngineKey.F5, System.Windows.Input.Key.F6 => EngineKey.F6,
+        System.Windows.Input.Key.F7 => EngineKey.F7, System.Windows.Input.Key.F8 => EngineKey.F8,
+        System.Windows.Input.Key.F9 => EngineKey.F9, System.Windows.Input.Key.F10 => EngineKey.F10,
+        System.Windows.Input.Key.F11 => EngineKey.F11, System.Windows.Input.Key.F12 => EngineKey.F12,
+        _ => EngineKey.None,
+    };
+
     #endregion
 }

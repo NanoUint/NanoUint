@@ -9,6 +9,7 @@ public sealed class SpriteRenderer : Behaviour
     private Sprite? _sprite;
     private Color _tint = Color.White;
     private bool _fullScreen;
+    private float _scale = 1f;
 
     #region Mouth animation
     private Sprite? _mouthClosed, _mouthHalf, _mouthOpen;
@@ -35,6 +36,13 @@ public sealed class SpriteRenderer : Behaviour
     {
         get => _tint;
         set { if (!_tint.Equals(value)) { _tint = value; MarkDirty(); } }
+    }
+
+    /// <summary>Scale multiplier; 1 = original size, 0.5 = half size.</summary>
+    public float Scale
+    {
+        get => _scale;
+        set { if (!_scale.Equals(value)) { _scale = value; MarkDirty(); } }
     }
 
     /// <summary>Whether to stretch the sprite to fill the whole screen.</summary>

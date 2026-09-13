@@ -412,10 +412,11 @@ internal sealed class WpfRenderer
                     var nativeW = activeSprite.Width > 0 ? activeSprite.Width : (bitmap.PixelWidth > 0 ? bitmap.PixelWidth : double.NaN);
                     var nativeH = activeSprite.Height > 0 ? activeSprite.Height : (bitmap.PixelHeight > 0 ? bitmap.PixelHeight : double.NaN);
                     var ppu = activeSprite.PixelsPerUnit > 0 ? activeSprite.PixelsPerUnit : 100f;
-                    img.Width = nativeW * 100.0 / ppu;
-                    img.Height = nativeH * 100.0 / ppu;
+                    var scale = sr.Scale;
+                    img.Width = nativeW * 100.0 / ppu * scale;
+                    img.Height = nativeH * 100.0 / ppu * scale;
                     img.Stretch = Stretch.Uniform;
-                    img.MaxHeight = (_effectiveHeight > 0 ? _effectiveHeight : 1080) * 0.78;
+                    img.MaxHeight = (_effectiveHeight > 0 ? _effectiveHeight : 1080) * 0.78 * scale;
                 }
             }
             else { sr.MarkDirty(); return false; }

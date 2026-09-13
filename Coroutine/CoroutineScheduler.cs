@@ -70,6 +70,8 @@ public sealed class CoroutineScheduler
         {
             var state = snapshot[i];
             if (state.Coroutine.IsStopped) continue;
+            // Fix: stop coroutines whose owner has been destroyed (prevents operating on dead objects)
+            if (state.Owner.IsDestroyed) { _active.Remove(state); continue; }
             if (!state.MoveNext(deltaTime))
                 _active.Remove(state);
         }

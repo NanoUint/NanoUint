@@ -16,7 +16,7 @@ public static class SaveManager
     private static bool _allowSave = true; // Set by the save boundary check.
 
     /// <summary>Whether saving is currently allowed.</summary>
-    public static bool AllowSave
+        public static bool AllowSave
     {
         get => _allowSave;
         internal set => _allowSave = value;
@@ -24,19 +24,19 @@ public static class SaveManager
 
     #region Quick Save
 
-    public static void QuickSave(SaveData data)
+        public static void QuickSave(SaveData data)
     {
         Save(QuickSaveSlot, data);
     }
 
-    public static SaveData? QuickLoad()
+        public static SaveData? QuickLoad()
     {
         return Load(QuickSaveSlot);
     }
 
-    public static bool QuickSaveExists => SlotExists(QuickSaveSlot);
+        public static bool QuickSaveExists => SlotExists(QuickSaveSlot);
 
-    public static SaveSlotInfo? GetQuickSaveInfo()
+        public static SaveSlotInfo? GetQuickSaveInfo()
     {
         var path = GetSlotPath(QuickSaveSlot);
         if (!File.Exists(path)) return null;
@@ -59,7 +59,7 @@ public static class SaveManager
 
     #region Save Operations
 
-    public static void Save(int slotIndex, SaveData data)
+        public static void Save(int slotIndex, SaveData data)
     {
         // QuickSave slot (99) bypasses the normal bounds check
         if (slotIndex != QuickSaveSlot && (slotIndex < 0 || slotIndex >= MaxSlots))
@@ -97,7 +97,7 @@ public static class SaveManager
         }
     }
 
-    public static SaveData? Load(int slotIndex)
+        public static SaveData? Load(int slotIndex)
     {
         // QuickSave slot (99) bypasses the normal bounds check
         if (slotIndex != QuickSaveSlot && (slotIndex < 0 || slotIndex >= MaxSlots))
@@ -152,7 +152,7 @@ public static class SaveManager
         return true;
     }
 
-    public static void Delete(int slotIndex)
+        public static void Delete(int slotIndex)
     {
         try
         {
@@ -168,12 +168,12 @@ public static class SaveManager
         }
     }
 
-    public static bool SlotExists(int slotIndex)
+        public static bool SlotExists(int slotIndex)
     {
         return File.Exists(GetSlotPath(slotIndex));
     }
 
-    public static List<SaveSlotInfo> GetAllSlots()
+        public static List<SaveSlotInfo> GetAllSlots()
     {
         var slots = new List<SaveSlotInfo>();
         for (int i = 0; i < MaxSlots; i++)
@@ -199,7 +199,7 @@ public static class SaveManager
         return slots.OrderByDescending(s => s.SaveTime).ToList();
     }
 
-    public static int GetSlotCount()
+        public static int GetSlotCount()
     {
         int count = 0;
         for (int i = 0; i < MaxSlots; i++)

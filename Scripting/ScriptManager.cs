@@ -91,14 +91,25 @@ public static class ScriptManager
 
         PreloadScriptAssets(script);
 
-        engine.OnText += (speaker, text) => OnDialogue?.Invoke(speaker, text);
-        engine.OnChoice += (texts, targets) => OnChoice?.Invoke(texts, targets);
-        engine.OnScriptEnd += () => OnScriptEnd?.Invoke();
-        engine.OnCommand += (name, args) => OnCommand?.Invoke(name, args);
+        // Unsubscribe previous handlers to prevent N-fold event accumulation on repeated Run() calls
+        engine.OnText -= OnEngineText;
+        engine.OnChoice -= OnEngineChoice;
+        engine.OnScriptEnd -= OnEngineScriptEnd;
+        engine.OnCommand -= OnEngineCommand;
+
+        engine.OnText += OnEngineText;
+        engine.OnChoice += OnEngineChoice;
+        engine.OnScriptEnd += OnEngineScriptEnd;
+        engine.OnCommand += OnEngineCommand;
 
         engine.Run(script, startLabel);
         Debug.Log($"ScriptManager: Running '{script.FilePath}'{(startLabel != null ? $" @ {startLabel}" : "")}");
     }
+
+    private static void OnEngineText(string? speaker, string text) => OnDialogue?.Invoke(speaker, text);
+    private static void OnEngineChoice(List<string> texts, List<string> targets) => OnChoice?.Invoke(texts, targets);
+    private static void OnEngineScriptEnd() => OnScriptEnd?.Invoke();
+    private static void OnEngineCommand(string name, Dictionary<string, object?> args) => OnCommand?.Invoke(name, args);
 
     private static void PreloadScriptAssets(CompiledScript script)
     {
@@ -119,8 +130,8 @@ public static class ScriptManager
                 var sprite = AssetDatabase.Load<Sprite>(path);
                 if (sprite != null)
                 {
-                    // Warm up the BitmapImage cache
-                    Rendering.WpfRenderer.WarmupBitmap(sprite);
+                    // Warm up the BitmapImage cache (directly via ResourceManager, no WPF renderer dependency)
+                    ResourceManager.WarmupSync(sprite.Path);
                     loaded++;
                 }
             }

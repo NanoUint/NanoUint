@@ -23,22 +23,22 @@ public static class AudioManager
 
     #region Volume
 
-    public static float MasterVolume
+        public static float MasterVolume
     {
         get => _masterVolume;
         set { _masterVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
     }
-    public static float BGMVolume
+        public static float BGMVolume
     {
         get => _bgmVolume;
         set { _bgmVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
     }
-    public static float SFXVolume
+        public static float SFXVolume
     {
         get => _sfxVolume;
         set { _sfxVolume = Math.Clamp(value, 0f, 1f); }
     }
-    public static float VoiceVolume
+        public static float VoiceVolume
     {
         get => _voiceVolume;
         set { _voiceVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
@@ -52,7 +52,7 @@ public static class AudioManager
 
     #region Events
 
-    public static event Action? VoiceFinished;
+        public static event Action? VoiceFinished;
     public static bool IsVoicePlaying { get; private set; }
 
     /// <summary>Total duration in seconds of the currently playing voice; 0 when no voice is playing.</summary>
@@ -78,7 +78,7 @@ public static class AudioManager
 
     #region BGM
 
-    public static void PlayBGM(string resourcePath)
+        public static void PlayBGM(string resourcePath)
     {
         if (resourcePath == _currentBgmPath && _bgmDevice?.PlaybackState == PlaybackState.Playing)
             return;
@@ -110,7 +110,7 @@ public static class AudioManager
         }
     }
 
-    public static void StopBGM()
+        public static void StopBGM()
     {
         _isStoppingBgm = true;
         _bgmDevice?.Stop();
@@ -122,8 +122,8 @@ public static class AudioManager
         _isStoppingBgm = false;
     }
 
-    public static void PauseBGM() => _bgmDevice?.Pause();
-    public static void ResumeBGM() => _bgmDevice?.Play();
+        public static void PauseBGM() => _bgmDevice?.Pause();
+        public static void ResumeBGM() => _bgmDevice?.Play();
 
     private static void OnBGMStopped(object? sender, StoppedEventArgs e)
     {
@@ -148,7 +148,7 @@ public static class AudioManager
 
     #region SFX
 
-    public static void PlaySFX(string resourcePath)
+        public static void PlaySFX(string resourcePath)
     {
         WaveStream? stream = null;
         WaveOutEvent? device = null;
@@ -173,7 +173,7 @@ public static class AudioManager
 
     #region Voice
 
-    public static void PlayVoice(string resourcePath)
+        public static void PlayVoice(string resourcePath)
     {
         StopVoice();
 
@@ -202,7 +202,7 @@ public static class AudioManager
         }
     }
 
-    public static void StopVoice()
+        public static void StopVoice()
     {
         _isStoppingVoice = true;
         _voiceDevice?.Stop();
@@ -231,13 +231,13 @@ public static class AudioManager
 
     #region Global
 
-    public static void StopAll()
+        public static void StopAll()
     {
         StopBGM();
         StopVoice();
     }
 
-    public static void Dispose()
+        public static void Dispose()
     {
         StopAll();
     }
