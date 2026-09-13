@@ -417,6 +417,9 @@ internal sealed class WpfEngineHost
 
     #region Main Loop
 
+    private double _accumulator;
+    private const double FixedDt = 1.0 / 60.0;
+
     private void OnFrame(object? sender, EventArgs e)
     {
         if (!_isRunning || _mainScene == null) return;
@@ -424,10 +427,16 @@ internal sealed class WpfEngineHost
         try
         {
             var now = DateTime.UtcNow;
-            var dt = Math.Min((float)(now - _lastFrame).TotalSeconds, 0.1f) * Debugging.UE.UIManager.TimeScale;
+            var frameDt = Math.Min((now - _lastFrame).TotalSeconds, 0.1);
             _lastFrame = now;
 
-            _mainScene.Update(dt);
+            _accumulator += frameDt * Debugging.UE.UIManager.TimeScale;
+
+            while (_accumulator >= FixedDt)
+            {
+                _mainScene.Update((float)FixedDt);
+                _accumulator -= FixedDt;
+            }
 
             _renderer!.UpdateDirtyComponents();
 
@@ -435,7 +444,6 @@ internal sealed class WpfEngineHost
             {
                 _rootCanvas.RenderTransform = new TranslateTransform(
                     Application.ShakeOffsetX, Application.ShakeOffsetY);
-                // Decays to zero each frame; coroutines re-set a non-zero value when needed.
                 Application.ShakeOffsetX = 0;
                 Application.ShakeOffsetY = 0;
             }

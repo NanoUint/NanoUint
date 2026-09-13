@@ -12,14 +12,24 @@ public sealed class Scene
     /// <summary>Scene name.</summary>
     public string Name { get; }
 
-    /// <summary>Root objects in the scene.</summary>
-    public IReadOnlyList<GameObject> RootObjects
+    /// <summary>All objects in the scene (including destroyed ones until cleanup).</summary>
+    public IReadOnlyList<GameObject> AllObjects
     {
         get
         {
             _objects.RemoveAll(o => o.IsDestroyed);
             return _objects.AsReadOnly();
         }
+    }
+
+    /// <summary>Objects with no parent (true roots). Alias for backward compatibility.</summary>
+    public IReadOnlyList<GameObject> RootObjects => AllObjects;
+
+    /// <summary>Returns only objects whose Transform has no parent.</summary>
+    public IReadOnlyList<GameObject> GetRootObjects()
+    {
+        _objects.RemoveAll(o => o.IsDestroyed);
+        return _objects.Where(o => o.Transform.Parent == null).ToList().AsReadOnly();
     }
 
     public Scene(string name)
@@ -80,6 +90,16 @@ public sealed class Scene
             _objectMap.Remove(obj.Name);
         _orderDirty = true;
         Logger.Trace("Scene", $"'{Name}': -{obj.Name} (total:{_objects.Count})");
+    }
+
+    /// <summary>Removes all destroyed objects from internal lists. Call at frame end.</summary>
+    public int DestroyPending()
+    {
+        int count = _objects.RemoveAll(o => o.IsDestroyed);
+        var toRemove = _objectMap.Where(kv => kv.Value.IsDestroyed).Select(kv => kv.Key).ToList();
+        foreach (var key in toRemove) _objectMap.Remove(key);
+        if (count > 0) _orderDirty = true;
+        return count;
     }
 
     #endregion
