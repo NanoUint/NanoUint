@@ -24,18 +24,15 @@ public static class Application
         _host?.Shutdown();
     }
 
-    /// <summary>Runs action on the next frame.</summary>
-    /// <remarks>Exceptions are caught and logged so a throwing callback cannot crash the whole app via the Dispatcher.</remarks>
+    /// <summary>Runs action on the next frame via the UI thread dispatcher.</summary>
     public static void Defer(Action action)
     {
         if (action == null) return;
         try
         {
-            var win = _host?.GetWindow();
-            if (win != null)
-                win.Dispatcher.BeginInvoke(
-                    System.Windows.Threading.DispatcherPriority.ContextIdle,
-                    () => SafeInvoke(action));
+            var dispatcher = Default?.Dispatcher;
+            if (dispatcher != null)
+                dispatcher.BeginInvoke(() => SafeInvoke(action));
             else
                 SafeInvoke(action);
         }

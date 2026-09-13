@@ -1,7 +1,5 @@
 namespace NanoUint;
 
-#pragma warning disable CS0618 // Wrappers delegate to obsolete static APIs during migration
-
 /// <summary>Container for all engine runtime services.</summary>
 public sealed class EngineContext
 {
@@ -11,6 +9,7 @@ public sealed class EngineContext
     public AudioServiceWrapper Audio { get; }
     public SaveServiceWrapper Save { get; }
     public InputServiceWrapper Input { get; }
+    public IDispatcher Dispatcher { get; set; } = null!;
 
     public EngineContext()
     {

@@ -23,22 +23,26 @@ public static class AudioManager
 
     #region Volume
 
-        public static float MasterVolume
+    /// <summary>Master volume (0-1). Prefer EngineContext.Default.Audio.MasterVolume.</summary>
+    public static float MasterVolume
     {
         get => _masterVolume;
         set { _masterVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
     }
-        public static float BGMVolume
+    /// <summary>BGM channel volume (0-1). Prefer EngineContext.Default.Audio.BGMVolume.</summary>
+    public static float BGMVolume
     {
         get => _bgmVolume;
         set { _bgmVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
     }
-        public static float SFXVolume
+    /// <summary>SFX channel volume (0-1). Prefer EngineContext.Default.Audio.SFXVolume.</summary>
+    public static float SFXVolume
     {
         get => _sfxVolume;
         set { _sfxVolume = Math.Clamp(value, 0f, 1f); }
     }
-        public static float VoiceVolume
+    /// <summary>Voice channel volume (0-1). Prefer EngineContext.Default.Audio.VoiceVolume.</summary>
+    public static float VoiceVolume
     {
         get => _voiceVolume;
         set { _voiceVolume = Math.Clamp(value, 0f, 1f); ApplyVolumes(); }
@@ -52,7 +56,8 @@ public static class AudioManager
 
     #region Events
 
-        public static event Action? VoiceFinished;
+    /// <summary>Voice playback finished event. Prefer EngineContext.Default.Audio event subscription.</summary>
+    public static event Action? VoiceFinished;
     public static bool IsVoicePlaying { get; private set; }
 
     /// <summary>Total duration in seconds of the currently playing voice; 0 when no voice is playing.</summary>
