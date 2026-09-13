@@ -1,3 +1,5 @@
+using NanoUint.Rendering;
+
 namespace NanoUint;
 
 /// <summary>Container for all engine runtime services.</summary>
@@ -11,6 +13,7 @@ public sealed class EngineContext
     public InputServiceWrapper Input { get; }
     public IDispatcher Dispatcher { get; set; } = null!;
     public ISystemServices System { get; set; } = null!;
+    public RendererRegistry Renderers { get; set; } = null!;
 
     public EngineContext()
     {

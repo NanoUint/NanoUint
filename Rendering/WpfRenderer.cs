@@ -12,8 +12,10 @@ internal sealed class WpfRenderer
     private readonly Canvas _canvas;
     private Scene? _scene;
     private readonly Dictionary<Component, UIElement> _visualMap = new();
+    private readonly Dictionary<Component, IRenderNode> _nodeMap = new();
     private readonly Dictionary<Component, int> _lastVersion = new();
     private readonly HashSet<Component> _knownComponents = new();
+    private readonly RendererRegistry _registry = new();
     private double _lastCanvasWidth;
     private double _lastCanvasHeight;
     private float _lastScaleFactor = 1f;
@@ -46,6 +48,23 @@ internal sealed class WpfRenderer
     public WpfRenderer(Canvas canvas)
     {
         _canvas = canvas;
+        RegisterDefaults();
+    }
+
+    public RendererRegistry Registry => _registry;
+
+    private void RegisterDefaults()
+    {
+        _registry.Register(new DelegateRenderer<FlashOverlay>(10, CreateOverlayElement, (c, e) => UpdateFlashOverlay(c, e)));
+        _registry.Register(new DelegateRenderer<SpriteRenderer>(20, CreateImageElement, (c, e) => UpdateSpriteRenderer(c, e)));
+        _registry.Register(new DelegateRenderer<BackgroundRenderer>(30, CreateBackgroundElement, (c, e) => UpdateBackgroundRenderer(c, e)));
+        _registry.Register(new DelegateRenderer<DialogueBox>(40, CreateDialogueBoxElement, (c, e) => UpdateDialogueBox(c, e)));
+        _registry.Register(new DelegateRenderer<ChoiceGroup>(50, CreateChoiceGroupElement, (c, e) => UpdateChoiceGroup(c, e)));
+        _registry.Register(new DelegateRenderer<TextRenderer>(60, CreateTextElement, (c, e) => UpdateTextRenderer(c, e)));
+        _registry.Register(new DelegateRenderer<BacklogView>(70, CreateBacklogElement, (c, e) => UpdateBacklogView(c, e)));
+        _registry.Register(new DelegateRenderer<AdvanceIndicator>(80, CreateAdvanceIndicatorElement, (c, e) => UpdateAdvanceIndicator(c, e)));
+        _registry.Register(new DelegateRenderer<Slider>(90, CreateSliderElement, (c, e) => UpdateSlider(c, e)));
+        _registry.Register(new DelegateRenderer<LineRenderer>(100, CreateLineRendererElement, (c, e) => UpdateLineRenderer(c, e)));
     }
 
     public void SetActiveScene(Scene scene)
@@ -156,19 +175,16 @@ internal sealed class WpfRenderer
 
     private UIElement? CreateVisual(Component comp)
     {
+        if (_registry.TryGet(comp, out var renderer) && renderer.TryCreate(comp, out var node))
+        {
+            if (node != null)
+                _nodeMap[comp] = node;
+            return node?.Element;
+        }
+
         return comp switch
         {
-            FlashOverlay => CreateOverlayElement(),
-            SpriteRenderer => CreateImageElement(),
-            BackgroundRenderer => CreateBackgroundElement(),
-            DialogueBox => CreateDialogueBoxElement(),
-            ChoiceGroup => CreateChoiceGroupElement(),
-            TextRenderer => CreateTextElement(),
-            BacklogView => CreateBacklogElement(),
-            AdvanceIndicator => CreateAdvanceIndicatorElement(),
             PhoneScreen => CreatePhoneElement(),
-            Slider => CreateSliderElement(),
-            LineRenderer => CreateLineRendererElement(),
             _ => null
         };
     }
@@ -180,22 +196,22 @@ internal sealed class WpfRenderer
 
         Canvas.SetZIndex(element, transform.SortingOrder);
 
-        // Per-type update FIRST — sets Width/Height so positioning below reads correct values.
-        bool typeUpdateOk = comp switch
+        bool typeUpdateOk = true;
+
+        if (_nodeMap.TryGetValue(comp, out var node))
         {
-            FlashOverlay fo => UpdateFlashOverlay(fo, element),
-            SpriteRenderer sr => UpdateSpriteRenderer(sr, element),
-            BackgroundRenderer bg => UpdateBackgroundRenderer(bg, element),
-            DialogueBox db => UpdateDialogueBox(db, element),
-            ChoiceGroup cg => UpdateChoiceGroup(cg, element),
-            TextRenderer tr => UpdateTextRenderer(tr, element),
-            BacklogView bl => UpdateBacklogView(bl, element),
-            AdvanceIndicator ai => UpdateAdvanceIndicator(ai, element),
-            PhoneScreen ps => UpdatePhoneScreen(ps, element),
-            Slider sl => UpdateSlider(sl, element),
-            LineRenderer lr => UpdateLineRenderer(lr, element),
-            _ => true
-        };
+            node.Sync(comp);
+            var key = new SortingKey { SortingOrder = transform.SortingOrder };
+            node.SetSorting(key);
+        }
+        else
+        {
+            typeUpdateOk = comp switch
+            {
+                PhoneScreen ps => UpdatePhoneScreen(ps, element),
+                _ => true
+            };
+        }
 
         if (element is FrameworkElement fe)
         {
@@ -250,6 +266,11 @@ internal sealed class WpfRenderer
         {
             _canvas.Children.Remove(element);
             _visualMap.Remove(comp);
+        }
+        if (_nodeMap.TryGetValue(comp, out var node))
+        {
+            node.Dispose();
+            _nodeMap.Remove(comp);
         }
     }
 

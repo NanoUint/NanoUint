@@ -85,6 +85,7 @@ internal sealed class WpfEngineHost
         _mainScene = new Scene("Main");
         _renderer.SetActiveScene(_mainScene);
         SceneManager.LoadScene(_mainScene);
+        Application.Default!.Renderers = _renderer.Registry;
 #if DEBUG
         _ueUi = new Debugging.UE.UIManager(_rootCanvas);
         _objectExplorer = new Debugging.UE.ObjectExplorerPanel(_rootCanvas);
