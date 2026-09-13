@@ -10,6 +10,7 @@ public sealed class EngineContext
     public SaveServiceWrapper Save { get; }
     public InputServiceWrapper Input { get; }
     public IDispatcher Dispatcher { get; set; } = null!;
+    public ISystemServices System { get; set; } = null!;
 
     public EngineContext()
     {

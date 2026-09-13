@@ -1,13 +1,14 @@
-using System.Windows;
 using NanoUint.Diagnostics;
 using NanoUint.Debugging;
-using WpfApplication = System.Windows.Application;
 
 namespace NanoUint.Scripting;
 
 /// <summary>Built-in script commands for Win32 and system operations.</summary>
 public static class BuiltInCommands
 {
+    private static ISystemServices Sys => Application.Default!.System;
+    private static IDispatcher Disp => Application.Default!.Dispatcher;
+
     #region System / Win32
 
     /// <summary>@sys_exit() — closes the application</summary>
@@ -15,8 +16,7 @@ public static class BuiltInCommands
     public static void SysExit(ScriptCommandContext ctx)
     {
         var code = ctx.Arg<double>(0, 0);
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-            WpfApplication.Current.Shutdown((int)code));
+        Sys.Shutdown((int)code);
     }
 
     /// <summary>@sys_message: shows a Windows message box and pauses the script until the user closes it.</summary>
@@ -25,12 +25,7 @@ public static class BuiltInCommands
     {
         var text = ctx.Arg<string>(0) ?? "";
         var title = ctx.Get<string>("title") ?? "FallenAltair";
-
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            System.Windows.MessageBox.Show(text, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        });
-
+        Sys.ShowMessage(text, title);
         ctx.Engine.RequestPause();
     }
 
@@ -41,25 +36,20 @@ public static class BuiltInCommands
         var text = ctx.Arg<string>(0) ?? "";
         var title = ctx.Get<string>("title") ?? "FallenAltair";
 
-        WpfApplication.Current.Dispatcher.Invoke(() =>
+        var confirmed = Sys.ShowConfirm(text, title);
+        if (confirmed)
         {
-            var result = System.Windows.MessageBox.Show(text, title,
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                var yesTarget = ctx.FlowBindings?.NamedTargets?.GetValueOrDefault("yes")
-                    ?? ctx.FlowBindings?.DefaultTarget;
-                if (!string.IsNullOrEmpty(yesTarget))
-                    ctx.Engine.JumpToLabel(yesTarget);
-            }
-            else
-            {
-                var noTarget = ctx.FlowBindings?.NamedTargets?.GetValueOrDefault("no");
-                if (!string.IsNullOrEmpty(noTarget))
-                    ctx.Engine.JumpToLabel(noTarget);
-            }
-        });
+            var yesTarget = ctx.FlowBindings?.NamedTargets?.GetValueOrDefault("yes")
+                ?? ctx.FlowBindings?.DefaultTarget;
+            if (!string.IsNullOrEmpty(yesTarget))
+                ctx.Engine.JumpToLabel(yesTarget);
+        }
+        else
+        {
+            var noTarget = ctx.FlowBindings?.NamedTargets?.GetValueOrDefault("no");
+            if (!string.IsNullOrEmpty(noTarget))
+                ctx.Engine.JumpToLabel(noTarget);
+        }
 
         ctx.Engine.RequestPause();
     }
@@ -72,11 +62,7 @@ public static class BuiltInCommands
     public static void SysWindowTitle(ScriptCommandContext ctx)
     {
         var title = ctx.Arg<string>(0) ?? "";
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            if (WpfApplication.Current.MainWindow != null)
-                WpfApplication.Current.MainWindow.Title = title;
-        });
+        Sys.SetWindowTitle(title);
     }
 
     /// <summary>@sys_clipboard("text") — copies text to the clipboard</summary>
@@ -84,11 +70,8 @@ public static class BuiltInCommands
     public static void SysClipboard(ScriptCommandContext ctx)
     {
         var text = ctx.Arg<string>(0) ?? "";
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            try { Clipboard.SetText(text); }
-            catch (Exception ex) { Logger.Warning("BuiltIn", $"[sys_clipboard] Clipboard locked: {ex.Message}"); }
-        });
+        try { Sys.SetClipboard(text); }
+        catch (Exception ex) { Logger.Warning("BuiltIn", $"[sys_clipboard] Clipboard locked: {ex.Message}"); }
     }
 
     #endregion
@@ -99,33 +82,21 @@ public static class BuiltInCommands
     [RegistryInScript("sys_minimize")]
     public static void SysMinimize(ScriptCommandContext ctx)
     {
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            if (WpfApplication.Current.MainWindow != null)
-                WpfApplication.Current.MainWindow.WindowState = WindowState.Minimized;
-        });
+        Sys.MinimizeWindow();
     }
 
     /// <summary>@sys_maximize() — maximizes the main window</summary>
     [RegistryInScript("sys_maximize")]
     public static void SysMaximize(ScriptCommandContext ctx)
     {
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            if (WpfApplication.Current.MainWindow != null)
-                WpfApplication.Current.MainWindow.WindowState = WindowState.Maximized;
-        });
+        Sys.MaximizeWindow();
     }
 
     /// <summary>@sys_restore() — restores the main window to normal size</summary>
     [RegistryInScript("sys_restore")]
     public static void SysRestore(ScriptCommandContext ctx)
     {
-        WpfApplication.Current.Dispatcher.Invoke(() =>
-        {
-            if (WpfApplication.Current.MainWindow != null)
-                WpfApplication.Current.MainWindow.WindowState = WindowState.Normal;
-        });
+        Sys.RestoreWindow();
     }
 
     #endregion
@@ -146,19 +117,8 @@ public static class BuiltInCommands
     {
         var seconds = ctx.Arg<double>(0, 0.5);
         if (seconds <= 0) return;
-
-        // Dispatcher timer provides a non-blocking delay
-        var timer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(seconds)
-        };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            ctx.Engine.Continue();
-        };
-        timer.Start();
         ctx.Engine.RequestPause();
+        Disp.Wait(TimeSpan.FromSeconds(seconds), () => ctx.Engine.Continue());
     }
 
     #endregion

@@ -16,4 +16,15 @@ internal sealed class WpfDispatcher : IDispatcher
     {
         _dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, action);
     }
+
+    public void Wait(TimeSpan delay, Action onComplete)
+    {
+        var timer = new DispatcherTimer { Interval = delay };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            onComplete();
+        };
+        timer.Start();
+    }
 }

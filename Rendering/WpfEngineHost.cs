@@ -66,7 +66,10 @@ internal sealed class WpfEngineHost
         _window.Content = _rootCanvas;
 
         if (Application.Default != null)
+        {
             Application.Default.Dispatcher = new WpfDispatcher(_window.Dispatcher);
+            Application.Default.System = new WpfSystemServices(() => _window);
+        }
 
         _window.KeyDown += OnKeyDown;
         _window.KeyUp += OnKeyUp;

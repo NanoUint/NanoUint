@@ -112,11 +112,8 @@ public class ScriptEngine
         LogEngine($"Run: _stepIndex={_stepIndex}, steps={_currentScript.Steps.Count}, dispatching ExecuteNext...");
 
         // Defer the first step via the Dispatcher
-        var disp = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         LogEngine($"Run: dispatcher ok, posting...");
-        disp.BeginInvoke(
-            System.Windows.Threading.DispatcherPriority.Loaded,
-            () => {
+        Application.Default!.Dispatcher.BeginInvoke(() => {
                 LogEngine($"Run: BeginInvoke fired, calling ExecuteNext");
                 ExecuteNext();
                 LogEngine($"Run: ExecuteNext returned");
