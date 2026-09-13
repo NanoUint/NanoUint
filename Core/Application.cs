@@ -7,9 +7,13 @@ public static class Application
 {
     private static Rendering.WpfEngineHost? _host;
 
+    /// <summary>Default engine context. Set during Run(); null before startup.</summary>
+    public static EngineContext? Default { get; private set; }
+
     /// <summary>Starts the engine and runs the game.</summary>
     public static void Run(IGameBootstrapper bootstrapper)
     {
+        Default = new EngineContext();
         _host = new Rendering.WpfEngineHost(bootstrapper);
         _host.Run();
     }
