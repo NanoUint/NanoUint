@@ -1,4 +1,6 @@
 using System.IO;
+using NanoUint;
+using NanoUintVN.Dialogue;
 using NanoUintVN.Settings;
 
 namespace NanoUintVN.Tests;
@@ -175,6 +177,85 @@ public class SettingsTests : IDisposable
         mgr.Reset();
 
         Assert.Equal(SkipMode.ReadOnly, mgr.Current.Text.SkipMode);
+    }
+
+    [Fact]
+    public void CompositeApplier_FansOutToEveryApplier()
+    {
+        var first = new RecordingApplier();
+        var second = new RecordingApplier();
+        var composite = new CompositeSettingsApplier(first).Add(second);
+        var settings = new VNSettings();
+
+        composite.Apply(settings);
+
+        Assert.Equal(1, first.Count);
+        Assert.Equal(1, second.Count);
+        Assert.Same(settings, first.Last);
+    }
+
+    [Fact]
+    public void Manager_WithCompositeApplier_ReachesEveryApplier()
+    {
+        var first = new RecordingApplier();
+        var second = new RecordingApplier();
+        var mgr = new SettingsManagerV2(new MemorySettingsStore(), new CompositeSettingsApplier(first).Add(second));
+
+        mgr.Update(s => s.Text.SkipMode = SkipMode.All);
+
+        Assert.Equal(1, first.Count);
+        Assert.Equal(1, second.Count);
+    }
+
+    [Fact]
+    public void EngineApplier_PushesAudioVolumes()
+    {
+        var settings = new VNSettings
+        {
+            Basic = new BasicSettings
+            {
+                // Keep display untouched so the test does not need a live window.
+                ResolutionWidth = NanoUint.ScreenManager.Width,
+                ResolutionHeight = NanoUint.ScreenManager.Height,
+                Fullscreen = NanoUint.ScreenManager.IsFullscreen,
+            },
+        };
+        settings.Audio.BgmVolume = 0.4f;
+        settings.Audio.VoiceVolume = 0.6f;
+
+        new EngineSettingsApplier().Apply(settings);
+
+        Assert.Equal(0.4f, NanoUint.AudioManager.BGMVolume);
+        Assert.Equal(0.6f, NanoUint.AudioManager.VoiceVolume);
+    }
+
+    [Fact]
+    public void PlaybackApplier_MapsPolicyAndAutoSave()
+    {
+        var controller = new VNPlaybackController(new DialoguePlayer());
+        var applier = new VNPlaybackSettingsApplier(controller);
+
+        applier.Apply(new VNSettings
+        {
+            Basic = new BasicSettings { AutoQuickSave = AutoQuickSaveMode.All },
+            Text = new TextSettings { MessageSpeed = 20f, SkipMode = SkipMode.All },
+        });
+
+        Assert.Equal(SkipMode.All, controller.SkipPolicy);
+        Assert.Equal(AutoQuickSaveMode.All, controller.AutoQuickSavePolicy);
+        Assert.True(controller.AutoSave.Enabled);
+        Assert.Equal(3.5f, controller.AutoAdvanceDelay);
+    }
+
+    [Fact]
+    public void PlaybackApplier_DisablesAutoSaveWhenOff()
+    {
+        var controller = new VNPlaybackController(new DialoguePlayer());
+
+        new VNPlaybackSettingsApplier(controller).Apply(new VNSettings());
+
+        Assert.False(controller.AutoSave.Enabled);
+        Assert.Equal(SkipMode.ReadOnly, controller.SkipPolicy);
     }
 
     private sealed class RecordingApplier : IVNSettingsApplier

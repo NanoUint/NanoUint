@@ -1,5 +1,6 @@
 using NanoUintVN.Dialogue;
 using NanoUintVN.Save;
+using NanoUintVN.Settings;
 
 namespace NanoUintVN;
 
@@ -21,6 +22,12 @@ public sealed class VNPlaybackController
     public float AutoAdvanceDelay { get; set; } = 3f;
     public bool IsSkipMode { get; private set; }
     public AutoSaveConfig AutoSave { get; } = new();
+
+    /// <summary>Skip policy. Enforcing ReadOnly needs a read-history source, which is not wired yet.</summary>
+    public SkipMode SkipPolicy { get; set; } = SkipMode.ReadOnly;
+
+    /// <summary>Automatic quick save policy, honoured at the boundaries the runtime reports.</summary>
+    public AutoQuickSaveMode AutoQuickSavePolicy { get; set; } = AutoQuickSaveMode.Off;
 
     private float _autoAdvanceTimer;
 
