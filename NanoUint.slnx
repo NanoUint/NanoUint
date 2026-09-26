@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="NanoUint.csproj" />
+  <Project Path="NanoUint2D/NanoUint2D.csproj" />
+  <Project Path="NanoUintVN/NanoUintVN.csproj" />
+  <Project Path="NanoUint.Tests/NanoUint.Tests.csproj" />
+  <Project Path="NanoUintVN.Tests/NanoUintVN.Tests.csproj" />
 </Solution>
