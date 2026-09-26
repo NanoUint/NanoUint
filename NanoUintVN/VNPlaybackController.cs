@@ -1,4 +1,5 @@
 using NanoUintVN.Dialogue;
+using NanoUintVN.History;
 using NanoUintVN.Save;
 using NanoUintVN.Settings;
 
@@ -23,13 +24,20 @@ public sealed class VNPlaybackController
     public bool IsSkipMode { get; private set; }
     public AutoSaveConfig AutoSave { get; } = new();
 
-    /// <summary>Skip policy. Enforcing ReadOnly needs a read-history source, which is not wired yet.</summary>
+    /// <summary>
+    /// Skip policy. ReadOnly stops the skip at the first line the player has not read, and needs
+    /// <see cref="History"/> to be set; without it the policy behaves like All.
+    /// </summary>
     public SkipMode SkipPolicy { get; set; } = SkipMode.ReadOnly;
+
+    /// <summary>Read history backing <see cref="SkipMode.ReadOnly"/>. Null disables read tracking.</summary>
+    public IReadHistory? History { get; set; }
 
     /// <summary>Automatic quick save policy, honoured at the boundaries the runtime reports.</summary>
     public AutoQuickSaveMode AutoQuickSavePolicy { get; set; } = AutoQuickSaveMode.Off;
 
     private float _autoAdvanceTimer;
+    private string? _currentBeatKey;
 
     public VNPlaybackController(DialoguePlayer player, SaveManagerV2? saveManager = null)
     {
@@ -63,6 +71,8 @@ public sealed class VNPlaybackController
 
     public void Update(float deltaTime)
     {
+        TrackReadState();
+
         if (IsSkipMode && _player.State == PlayerState.WaitingForAdvance)
         {
             _player.Advance();
@@ -89,6 +99,33 @@ public sealed class VNPlaybackController
             if (beat != null)
                 _player.UpdateTypewriter(deltaTime, beat.TextSpeed);
         }
+    }
+
+    /// <summary>
+    /// Marks the current beat as read and, under ReadOnly skipping, stops the skip the first time it
+    /// reaches a line the player has not seen. The check runs before the mark, otherwise every line
+    /// would already look read by the time it is tested.
+    /// </summary>
+    private void TrackReadState()
+    {
+        var beat = _player.CurrentBeat;
+        if (beat == null)
+        {
+            _currentBeatKey = null;
+            return;
+        }
+
+        var key = ReadHistoryKeys.ForBeat(beat);
+        if (key == _currentBeatKey) return;
+        _currentBeatKey = key;
+
+        var wasRead = History?.HasRead(key) ?? false;
+        if (IsSkipMode && SkipPolicy == SkipMode.ReadOnly && History != null && !wasRead)
+        {
+            IsSkipMode = false;
+        }
+
+        History?.MarkRead(key);
     }
 
     public void TryAutoSave()
